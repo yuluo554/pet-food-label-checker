@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+build/
+dist/
+*.spec
+# PyInstaller spec 为交付产物，入仓（上方通配默认吞掉，此处例外放行）
+!tools/*.spec
+
+# 运行产物
+output/
+reports/
+*.log
+.tmp/
+*.bak
+
+# 环境与密钥
+.env
+*.key
+*_private/
+
+# 真实品牌样例的本地私有参照件（不入仓；见 data/README.md §四 合成数据纪律）
+data/**/_private/
+
+# 系统文件
+Thumbs.db
+Desktop.ini
+.DS_Store
