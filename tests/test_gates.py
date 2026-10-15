@@ -613,6 +613,137 @@ def test_shipped_samples_match_generator():
     assert module.check() is True
 
 
+def test_shipped_truth_library_matches_generator():
+    """入库真值库与生成器输出一致（防手改冻结真值）。
+
+    真值库是"基准期望"的唯一来源——它若可手改，"引擎对不对"就永远无法
+    与"真值对不对"分离（与规则包同一条纪律）。
+    """
+    import importlib.util
+    import sys as _sys
+
+    spec = importlib.util.spec_from_file_location(
+        "gen_cases_probe_gate", TOOLS / "gen_cases.py")
+    module = importlib.util.module_from_spec(spec)
+    _sys.modules["gen_cases_probe_gate"] = module
+    spec.loader.exec_module(module)
+
+    assert module.check() is True
+
+
+def test_frozen_truth_library_ships_in_the_package():
+    """**冻结真值库必须随包**：否则发行态的基准只能回落现场重算。
+
+    GUI 与 CLI 都带基准功能，而基准的期望来源是入库冻结真值库
+    （``data/benchmark/cases.json``）。它不进包 → 发行包里
+    "期望锚定冻结真值"是空话（**源码态绿、发行态名不副实**）。
+
+    M4 实测教训：源码态"绿"不能替代发行态——故这里直接断言打包白名单。
+    """
+    from pflc.packaging import DATA_WHITELIST, build_datas
+
+    assert "benchmark" in DATA_WHITELIST, (
+        "打包白名单未收 benchmark —— 发行态的基准会回落现场重算")
+
+    datas = build_datas(ROOT)
+    targets = [dest for _src, dest in datas]
+    assert "data/benchmark" in targets, "build_datas 未把 data/benchmark 打进包：%s" % targets
+
+    from pflc.packaging import data_manifest
+    manifest = data_manifest(ROOT)
+    assert "data/benchmark/cases.json" in manifest, (
+        "内嵌数据对账清单里没有冻结真值库：%s" % sorted(manifest))
+
+
+def test_packaging_whitelist_gate_is_not_vacuous():
+    """**非空转自检**：``build_datas`` 真的产出了条目（不是空列表）。
+
+    若 data/rules 或 data/benchmark 缺失，白名单断言会因"什么都没打进去"
+    而误绿——故这里断言产出非空且指向真实目录。
+    """
+    from pflc.packaging import build_datas
+
+    datas = build_datas(ROOT)
+    assert datas, "build_datas 产出为空 = 白名单断言空转"
+    for src, dest in datas:
+        assert Path(src).is_dir(), "白名单指向的源目录不存在：%s" % src
+        assert dest.startswith("data/")
+
+
+def test_ci_runs_every_frozen_generator_check():
+    """**每个冻结生成器的 `--check` 都必须在 CI 上真的跑。**
+
+    "本地一直绿" ≠ "CI 验过"：加了 `gen_cases.py --check` 却忘了写进 CI，
+    这道门在 CI 上等于不存在，而本地手工跑仍是绿的——最隐蔽的失效模式。
+
+    **判据必须是"活的 step"，不能是子串匹配**：实测把该 step 整段注释掉后，
+    子串判据照样命中 `gen_cases.py --check` 而保持绿 = 又一道假门。
+    故这里解析 workflow 的 **run 步骤**（注释行不会被解析成步骤）。
+    """
+    workflow = ROOT / ".github" / "workflows" / "ci.yml"
+    if not workflow.is_file():
+        pytest.skip("CI workflow 尚未创建")
+    try:
+        import yaml
+    except ImportError:
+        pytest.skip("未安装 pyyaml（dev extra 应包含它）")
+
+    data = yaml.safe_load(workflow.read_text(encoding="utf-8"))
+    run_lines = []
+    for job in data.get("jobs", {}).values():
+        for step in job.get("steps", []):
+            if step.get("run"):
+                run_lines.append(str(step["run"]))
+    joined = "\n".join(run_lines)
+
+    generators = sorted(p.name for p in TOOLS.glob("gen_*.py"))
+    assert generators, "tools/ 下没有生成器 = 扫描面为空（门禁空转）"
+    missing = [name for name in generators if "%s --check" % name not in joined]
+    assert missing == [], (
+        "CI 的 run 步骤里没有这些生成器的 --check（注释掉不算）: %s" % missing)
+
+
+def test_ci_generator_gate_is_not_fooled_by_comments():
+    """**非空转自检**：把 step 注释掉必须被判为"缺失"，子串命中不算数。
+
+    这是 `test_ci_runs_every_frozen_generator_check` 的可证伪性证明——
+    否则它的判据可能只是"文件里出现过这串字"（实测确实会这样）。
+    """
+    workflow = ROOT / ".github" / "workflows" / "ci.yml"
+    if not workflow.is_file():
+        pytest.skip("CI workflow 尚未创建")
+    try:
+        import yaml
+    except ImportError:
+        pytest.skip("未安装 pyyaml")
+
+    data = yaml.safe_load(workflow.read_text(encoding="utf-8"))
+    run_lines = []
+    for job in data.get("jobs", {}).values():
+        for step in job.get("steps", []):
+            if step.get("run"):
+                run_lines.append(str(step["run"]))
+    joined = "\n".join(run_lines)
+
+    # 正向：真实的 run 步骤能被提取出来（扫描面非空）
+    assert "pytest" in joined, "未能从 CI 提取到 run 步骤 = 判据空转"
+    # 反向：注释形态不算"跑过"
+    assert "gen_nonexistent.py --check" not in joined
+
+
+def test_frozen_generators_all_share_the_check_marker_form():
+    """生成器形态一致性：每个 ``gen_*.py`` 都支持 ``--check`` 且打 ``*_OK`` 标记。
+
+    形态漂移（有的打标记有的不打）会让"跑没跑成"无法被脚本判读。
+    """
+    missing_check = []
+    for path in sorted(TOOLS.glob("gen_*.py")):
+        text = path.read_text(encoding="utf-8")
+        if '"--check"' not in text and "'--check'" not in text:
+            missing_check.append(path.name)
+    assert missing_check == [], "生成器缺 --check 通路：%s" % missing_check
+
+
 # --------------------------------------------------------------------------
 # 门禁六：全本地零上传
 # --------------------------------------------------------------------------

@@ -1,0 +1,219 @@
+{
+  "brand_whitelist": [
+    "测试粮A",
+    "测试粮B",
+    "测试粮C",
+    "测试粮D",
+    "测试粮E",
+    "测试粮F"
+  ],
+  "cases": [
+    {
+      "also_expect": [],
+      "case_id": "C-001",
+      "case_type": "compliant",
+      "expected_findings": {},
+      "expected_overall": "compliant",
+      "injected": "全部强制标示项齐备；保证值按规则包限值达标",
+      "text": "测试粮C 猫粮 成年\n原料组成：鸡肉、糙米、玉米、鱼油、维生素预混料\n添加剂：维生素A、维生素D3、硫酸锌、氯化胆碱\n成分分析保证值：\n水分 <= 12%\n粗蛋白 >= 24%\n粗脂肪 >= 9.92%\n粗灰分 <= 6.8%\n粗纤维 <= 5.92%\n钙 >= 2.528%\n总磷 >= 2.44%\n水溶性氯化物 >= 2.264%\n净含量：2kg\n生产企业：某合成宠物食品有限公司\n生产日期：2026-01-01\n保质期：18个月\n",
+      "text_sha256": "6db60f1c12e94f2afa80e9f6f8af2cf8f4645a05d43962035ab8e90efbea8b75"
+    },
+    {
+      "also_expect": [],
+      "case_id": "C-002",
+      "case_type": "compliant",
+      "expected_findings": {},
+      "expected_overall": "compliant",
+      "injected": "全部强制标示项齐备；保证值按规则包限值达标",
+      "text": "测试粮E 猫粮 成年\n原料组成：鸡肉、糙米、玉米、鱼油、维生素预混料\n添加剂：维生素A、维生素D3、硫酸锌、氯化胆碱\n成分分析保证值：\n水分 <= 12%\n粗蛋白 >= 24%\n粗脂肪 >= 9.92%\n粗灰分 <= 6.8%\n粗纤维 <= 5.92%\n钙 >= 2.528%\n总磷 >= 2.44%\n水溶性氯化物 >= 2.264%\n净含量：2kg\n生产企业：某合成宠物食品有限公司\n生产日期：2026-01-01\n保质期：18个月\n",
+      "text_sha256": "b834784efc15fbd3c6d7fd0022e160632374cd1230fce5f0f4f372e59c21c4e4"
+    },
+    {
+      "also_expect": [],
+      "case_id": "C-003",
+      "case_type": "compliant",
+      "expected_findings": {},
+      "expected_overall": "compliant",
+      "injected": "全部强制标示项齐备；保证值按规则包限值达标",
+      "text": "测试粮E 猫粮 妊娠哺乳期\n原料组成：鸡肉、糙米、玉米、鱼油、维生素预混料\n添加剂：维生素A、维生素D3、硫酸锌、氯化胆碱\n成分分析保证值：\n水分 <= 12%\n粗蛋白 >= 26.64%\n粗脂肪 >= 9.92%\n粗灰分 <= 6.8%\n粗纤维 <= 5.92%\n钙 >= 2.88%\n总磷 >= 2.704%\n水溶性氯化物 >= 2.264%\n净含量：2kg\n生产企业：某合成宠物食品有限公司\n生产日期：2026-01-01\n保质期：18个月\n",
+      "text_sha256": "27b9151fc09a23caf2911efafb8c8f0ed98d26a8a18822ac8081df0e8b6769ff"
+    },
+    {
+      "also_expect": [],
+      "case_id": "C-004",
+      "case_type": "compliant",
+      "expected_findings": {},
+      "expected_overall": "compliant",
+      "injected": "全部强制标示项齐备；保证值按规则包限值达标",
+      "text": "测试粮E 猫粮 妊娠哺乳期\n原料组成：鸡肉、糙米、玉米、鱼油、维生素预混料\n添加剂：维生素A、维生素D3、硫酸锌、氯化胆碱\n成分分析保证值：\n水分 <= 12%\n粗蛋白 >= 26.64%\n粗脂肪 >= 9.92%\n粗灰分 <= 6.8%\n粗纤维 <= 5.92%\n钙 >= 2.88%\n总磷 >= 2.704%\n水溶性氯化物 >= 2.264%\n净含量：2kg\n生产企业：某合成宠物食品有限公司\n生产日期：2026-01-01\n保质期：18个月\n",
+      "text_sha256": "27b9151fc09a23caf2911efafb8c8f0ed98d26a8a18822ac8081df0e8b6769ff"
+    },
+    {
+      "also_expect": [
+        {
+          "target": "ingredients",
+          "verdict": "noncompliant"
+        }
+      ],
+      "case_id": "M-005",
+      "case_type": "missing",
+      "expected_findings": {
+        "LABEL-002": "noncompliant"
+      },
+      "expected_overall": "noncompliant",
+      "injected": "植入缺失字段：ingredients（该字段的规则 effect=obligation）",
+      "text": "测试粮F 犬粮 成年\n添加剂：维生素A、维生素D3、硫酸锌、氯化胆碱\n成分分析保证值：\n水分 <= 12%\n粗蛋白 >= 17.84%\n粗脂肪 >= 6.4%\n粗灰分 <= 6.8%\n粗纤维 <= 5.92%\n钙 >= 2.528%\n总磷 >= 2.44%\n水溶性氯化物 >= 2.0792%\n赖氨酸 >= 2.5544%\n净含量：2kg\n生产企业：某合成宠物食品有限公司\n生产日期：2026-01-01\n保质期：18个月\n",
+      "text_sha256": "dc0fb5e4c3ba73f39305083462942527d187d4ad5002f5f8556c3e204d581a4b"
+    },
+    {
+      "also_expect": [
+        {
+          "target": "net_content",
+          "verdict": "noncompliant"
+        }
+      ],
+      "case_id": "M-006",
+      "case_type": "missing",
+      "expected_findings": {
+        "LABEL-003": "noncompliant"
+      },
+      "expected_overall": "noncompliant",
+      "injected": "植入缺失字段：net_content（该字段的规则 effect=obligation）",
+      "text": "测试粮F 犬粮 成年\n原料组成：鸡肉、糙米、玉米、鱼油、维生素预混料\n添加剂：维生素A、维生素D3、硫酸锌、氯化胆碱\n成分分析保证值：\n水分 <= 12%\n粗蛋白 >= 17.84%\n粗脂肪 >= 6.4%\n粗灰分 <= 6.8%\n粗纤维 <= 5.92%\n钙 >= 2.528%\n总磷 >= 2.44%\n水溶性氯化物 >= 2.0792%\n赖氨酸 >= 2.5544%\n生产企业：某合成宠物食品有限公司\n生产日期：2026-01-01\n保质期：18个月\n",
+      "text_sha256": "b4566a66c89103870a6b2c5289d8b95635035c260e715da91a3c4fc53e0bd3d0"
+    },
+    {
+      "also_expect": [
+        {
+          "target": "additives",
+          "verdict": "unknown"
+        }
+      ],
+      "case_id": "M-007",
+      "case_type": "missing",
+      "expected_findings": {
+        "LABEL-006": "unknown"
+      },
+      "expected_overall": "compliant",
+      "injected": "植入缺失字段：additives（该字段的规则 effect=conditional）",
+      "text": "测试粮F 犬粮 妊娠哺乳期\n原料组成：鸡肉、糙米、玉米、鱼油、维生素预混料\n成分分析保证值：\n水分 <= 12%\n粗蛋白 >= 21.36%\n粗脂肪 >= 9.04%\n粗灰分 <= 6.8%\n粗纤维 <= 5.92%\n钙 >= 2.88%\n总磷 >= 2.704%\n水溶性氯化物 >= 2.396%\n赖氨酸 >= 2.6776%\n净含量：2kg\n生产企业：某合成宠物食品有限公司\n生产日期：2026-01-01\n保质期：18个月\n",
+      "text_sha256": "11adb37008bda55c1f6ab0cc07f9304eb143fc9a2e660e7f112fa161fab362f6"
+    },
+    {
+      "also_expect": [
+        {
+          "target": "net_content",
+          "verdict": "noncompliant"
+        }
+      ],
+      "case_id": "M-008",
+      "case_type": "missing",
+      "expected_findings": {
+        "LABEL-003": "noncompliant"
+      },
+      "expected_overall": "noncompliant",
+      "injected": "植入缺失字段：net_content（该字段的规则 effect=obligation）",
+      "text": "测试粮C 犬粮 成年\n原料组成：鸡肉、糙米、玉米、鱼油、维生素预混料\n添加剂：维生素A、维生素D3、硫酸锌、氯化胆碱\n成分分析保证值：\n水分 <= 12%\n粗蛋白 >= 17.84%\n粗脂肪 >= 6.4%\n粗灰分 <= 6.8%\n粗纤维 <= 5.92%\n钙 >= 2.528%\n总磷 >= 2.44%\n水溶性氯化物 >= 2.0792%\n赖氨酸 >= 2.5544%\n生产企业：某合成宠物食品有限公司\n生产日期：2026-01-01\n保质期：18个月\n",
+      "text_sha256": "8a56c04a6fee23598a12c693da7ab6b7a9ae0b87df036186823166fa48b57ebd"
+    },
+    {
+      "also_expect": [],
+      "case_id": "O-009",
+      "case_type": "overlimit",
+      "expected_findings": {
+        "NUT-DOG-015": "noncompliant"
+      },
+      "expected_overall": "noncompliant",
+      "injected": "植入越限：赖氨酸 >= 0.1（标示口径；干基限值 0.77 %）",
+      "text": "测试粮F 犬粮 妊娠哺乳期\n原料组成：鸡肉、糙米、玉米、鱼油、维生素预混料\n添加剂：维生素A、维生素D3、硫酸锌、氯化胆碱\n成分分析保证值：\n水分 <= 12%\n赖氨酸 >= 0.1%\n净含量：2kg\n生产企业：某合成宠物食品有限公司\n生产日期：2026-01-01\n保质期：18个月\n",
+      "text_sha256": "cf9c112485bc9631b5d70b1135b00868cc5e9d7050937ba9e90ce03cc449693e"
+    },
+    {
+      "also_expect": [],
+      "case_id": "O-010",
+      "case_type": "overlimit",
+      "expected_findings": {
+        "NUT-CAT-009": "noncompliant"
+      },
+      "expected_overall": "noncompliant",
+      "injected": "植入越限：钙 >= 0.1（标示口径；干基限值 1 %）",
+      "text": "测试粮D 猫粮 妊娠哺乳期\n原料组成：鸡肉、糙米、玉米、鱼油、维生素预混料\n添加剂：维生素A、维生素D3、硫酸锌、氯化胆碱\n成分分析保证值：\n水分 <= 12%\n钙 >= 0.1%\n净含量：2kg\n生产企业：某合成宠物食品有限公司\n生产日期：2026-01-01\n保质期：18个月\n",
+      "text_sha256": "795af1937f7d1c419039f2a9138c75acf87a57cebcae52f0558eb51998603831"
+    },
+    {
+      "also_expect": [],
+      "case_id": "O-011",
+      "case_type": "overlimit",
+      "expected_findings": {
+        "NUT-DOG-009": "noncompliant"
+      },
+      "expected_overall": "noncompliant",
+      "injected": "植入越限：钙 >= 0.1（标示口径；干基限值 1 %）",
+      "text": "测试粮D 犬粮 妊娠哺乳期\n原料组成：鸡肉、糙米、玉米、鱼油、维生素预混料\n添加剂：维生素A、维生素D3、硫酸锌、氯化胆碱\n成分分析保证值：\n水分 <= 12%\n钙 >= 0.1%\n净含量：2kg\n生产企业：某合成宠物食品有限公司\n生产日期：2026-01-01\n保质期：18个月\n",
+      "text_sha256": "d938ce23747e049a8284b7566d8e0c65c442c2f607fd733df26d6c5d9266c1b5"
+    },
+    {
+      "also_expect": [],
+      "case_id": "O-012",
+      "case_type": "overlimit",
+      "expected_findings": {
+        "NUT-DOG-003": "noncompliant"
+      },
+      "expected_overall": "noncompliant",
+      "injected": "植入越限：粗脂肪 >= 5.04（标示口径；干基限值 8 %）",
+      "text": "测试粮A 犬粮 妊娠哺乳期\n原料组成：鸡肉、糙米、玉米、鱼油、维生素预混料\n添加剂：维生素A、维生素D3、硫酸锌、氯化胆碱\n成分分析保证值：\n水分 <= 12%\n粗脂肪 >= 5.04%\n净含量：2kg\n生产企业：某合成宠物食品有限公司\n生产日期：2026-01-01\n保质期：18个月\n",
+      "text_sha256": "3c3ed025082e4908062ae32419cde0aad4809a9ad56238df70634b688668ebc8"
+    },
+    {
+      "also_expect": [],
+      "case_id": "S-013",
+      "case_type": "unsupported_claim",
+      "expected_findings": {
+        "CLAIM-001": "noncompliant"
+      },
+      "expected_overall": "noncompliant",
+      "injected": "植入无支撑宣称：天然（缺支撑信息 ingredients、additives）",
+      "text": "测试粮A 犬粮 成年\n产品特点：天然\n成分分析保证值：\n水分 <= 12%\n粗蛋白 >= 17.84%\n粗脂肪 >= 6.4%\n粗灰分 <= 6.8%\n粗纤维 <= 5.92%\n钙 >= 2.528%\n总磷 >= 2.44%\n水溶性氯化物 >= 2.0792%\n赖氨酸 >= 2.5544%\n净含量：2kg\n生产企业：某合成宠物食品有限公司\n生产日期：2026-01-01\n保质期：18个月\n",
+      "text_sha256": "8a3a917650fde1f209fad56ec382586b4db6077ef8dcb76b017fb440098a8c5f"
+    },
+    {
+      "also_expect": [],
+      "case_id": "S-014",
+      "case_type": "unsupported_claim",
+      "expected_findings": {
+        "CLAIM-003": "noncompliant"
+      },
+      "expected_overall": "noncompliant",
+      "injected": "植入无支撑宣称：无添加（缺支撑信息 ingredients、additives）",
+      "text": "测试粮B 犬粮 妊娠哺乳期\n产品特点：无添加\n成分分析保证值：\n水分 <= 12%\n粗蛋白 >= 21.36%\n粗脂肪 >= 9.04%\n粗灰分 <= 6.8%\n粗纤维 <= 5.92%\n钙 >= 2.88%\n总磷 >= 2.704%\n水溶性氯化物 >= 2.396%\n赖氨酸 >= 2.6776%\n净含量：2kg\n生产企业：某合成宠物食品有限公司\n生产日期：2026-01-01\n保质期：18个月\n",
+      "text_sha256": "bbfac389ccd1102ebec871dea406a8697f9cdd2aa1d8f1f74afd8c88d820ad4d"
+    },
+    {
+      "also_expect": [],
+      "case_id": "S-015",
+      "case_type": "unsupported_claim",
+      "expected_findings": {
+        "CLAIM-004": "noncompliant"
+      },
+      "expected_overall": "noncompliant",
+      "injected": "植入无支撑宣称：纯天然（缺支撑信息 ingredients、additives）",
+      "text": "测试粮D 犬粮 妊娠哺乳期\n产品特点：纯天然\n成分分析保证值：\n水分 <= 12%\n粗蛋白 >= 21.36%\n粗脂肪 >= 9.04%\n粗灰分 <= 6.8%\n粗纤维 <= 5.92%\n钙 >= 2.88%\n总磷 >= 2.704%\n水溶性氯化物 >= 2.396%\n赖氨酸 >= 2.6776%\n净含量：2kg\n生产企业：某合成宠物食品有限公司\n生产日期：2026-01-01\n保质期：18个月\n",
+      "text_sha256": "31dde52c0cd8f179f6c0ea73224febeb7d59fb88dad9f739d9ff7091cd384e64"
+    },
+    {
+      "also_expect": [],
+      "case_id": "S-016",
+      "case_type": "unsupported_claim",
+      "expected_findings": {
+        "CLAIM-004": "noncompliant"
+      },
+      "expected_overall": "noncompliant",
+      "injected": "植入无支撑宣称：纯天然（缺支撑信息 ingredients、additives）",
+      "text": "测试粮E 猫粮 妊娠哺乳期\n产品特点：纯天然\n成分分析保证值：\n水分 <= 12%\n粗蛋白 >= 26.64%\n粗脂肪 >= 9.92%\n粗灰分 <= 6.8%\n粗纤维 <= 5.92%\n钙 >= 2.88%\n总磷 >= 2.704%\n水溶性氯化物 >= 2.264%\n净含量：2kg\n生产企业：某合成宠物食品有限公司\n生产日期：2026-01-01\n保质期：18个月\n",
+      "text_sha256": "c993c1baba10de39cbcbfb7c08a0e9ee2a892cc898918313d108cd0f85eab8d4"
+    }
+  ],
+  "generator_version": "1",
+  "per_type": 4,
+  "seed": 20261015
+}

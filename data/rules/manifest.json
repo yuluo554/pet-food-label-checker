@@ -1,23 +1,36 @@
 {
   "coverage": {
     "claim": {
-      "note": "抽样覆盖、非逐因素穷举（M4 回填采样数与清单）",
-      "sample_list": [],
-      "sampled_in_truth": null,
+      "note": "抽样覆盖、非逐因素穷举。sampled_in_truth = 真值库为该规则写下显式逐条期望（expected_findings）的规则数；合规类用例虽逐条判了全部生效规则但无显式期望，故不计入采样数",
+      "sample_list": [
+        "CLAIM-001",
+        "CLAIM-003",
+        "CLAIM-004"
+      ],
+      "sampled_in_truth": 3,
       "total_rules": 5,
       "verified_rules": 5
     },
     "label": {
-      "note": "抽样覆盖、非逐因素穷举（M4 回填采样数与清单）",
-      "sample_list": [],
-      "sampled_in_truth": null,
+      "note": "抽样覆盖、非逐因素穷举。sampled_in_truth = 真值库为该规则写下显式逐条期望（expected_findings）的规则数；合规类用例虽逐条判了全部生效规则但无显式期望，故不计入采样数",
+      "sample_list": [
+        "LABEL-002",
+        "LABEL-003",
+        "LABEL-006"
+      ],
+      "sampled_in_truth": 3,
       "total_rules": 8,
       "verified_rules": 8
     },
     "nutrition": {
-      "note": "抽样覆盖、非逐因素穷举（M4 回填采样数与清单）",
-      "sample_list": [],
-      "sampled_in_truth": null,
+      "note": "抽样覆盖、非逐因素穷举。sampled_in_truth = 真值库为该规则写下显式逐条期望（expected_findings）的规则数；合规类用例虽逐条判了全部生效规则但无显式期望，故不计入采样数",
+      "sample_list": [
+        "NUT-CAT-009",
+        "NUT-DOG-003",
+        "NUT-DOG-009",
+        "NUT-DOG-015"
+      ],
+      "sampled_in_truth": 4,
       "total_rules": 32,
       "verified_rules": 30
     }

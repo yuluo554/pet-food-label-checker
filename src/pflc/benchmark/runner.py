@@ -38,8 +38,11 @@ from .cases import (
     CASE_MISSING,
     CASE_OVERLIMIT,
     CASE_UNSUPPORTED_CLAIM,
+    cases_match_generator,
+    cases_path_for,
     compare_nonpass,
     generate_cases,
+    load_cases,
     observed_nonpass,
 )
 
@@ -127,8 +130,37 @@ def load_thresholds(rules_dir: Path) -> Dict[str, Any]:
 # --------------------------------------------------------------------------
 
 
-def _sample_cases(rules_dir: Path) -> List[Dict[str, Any]]:
-    return generate_cases(Path(rules_dir))["cases"]
+#: 真值来源标记（进 metrics，使"基准到底读了什么"在输出里可见）
+TRUTH_SOURCE_FROZEN = "frozen"        #: 读的是入库冻结真值库
+TRUTH_SOURCE_REGENERATED = "regenerated"  #: 无入库件，现场由生成器产出
+
+
+def _sample_cases(rules_dir: Path):
+    """取本轮基准的期望来源（**冻结真值库优先**）。
+
+    返回 ``(cases, source)``。
+
+    **为什么必须是入库件优先**：K14 要求"期望锚定冻结真值"。M4 实测的旧实现
+    每次跑基准都现场重算真值（``generate_cases`` 直调），``load_cases`` /
+    ``check_cases_frozen`` 在 ``src/`` 与 ``tools/`` 里**零调用**——于是
+    "冻结真值库"是个没人读的文件，K14 只是名义上的。
+
+    **入库件存在但与生成器输出不一致 → 配置错误（exit 2）**，绝不"用旧的继续跑"
+    也绝不静默重算：真值漂移必须响。无入库件时（夹具/临时规则目录）回落到生成器
+    ——生成器是唯一真值源，此时 ``source`` 如实标 ``regenerated``。
+    """
+    rules_dir = Path(rules_dir)
+    path = cases_path_for(rules_dir)
+    if not path.is_file():
+        return generate_cases(rules_dir)["cases"], TRUTH_SOURCE_REGENERATED
+
+    cases = load_cases(path)
+    if not cases_match_generator(cases, rules_dir):
+        raise BenchConfigError(
+            "冻结真值库 %s 与生成器输出不一致（规则包改了但真值库未重生成）——"
+            "请跑 tools/gen_cases.py --force 重生成后再跑基准" % path
+        )
+    return cases["cases"], TRUTH_SOURCE_FROZEN
 
 
 def run_detection(rules_dir: Path, thresholds: Dict[str, Any]) -> SuiteResult:
@@ -136,7 +168,7 @@ def run_detection(rules_dir: Path, thresholds: Dict[str, Any]) -> SuiteResult:
 
     **空分母防空**：违规类样例数为 0 时不能算"全检出"——标 ``not_enabled``。
     """
-    cases = _sample_cases(rules_dir)
+    cases, truth_source = _sample_cases(rules_dir)
     violation_cases = [c for c in cases if c["case_type"] != CASE_COMPLIANT]
     clean_cases = [c for c in cases if c["case_type"] == CASE_COMPLIANT]
 
@@ -146,7 +178,8 @@ def run_detection(rules_dir: Path, thresholds: Dict[str, Any]) -> SuiteResult:
         # 违规类零样本 → 检出率恒真 = 假门
         result.not_enabled = True
         result.notes = "违规类用例未生成（分母为 0），检出率不可判定"
-        result.metrics = {"violation_cases": 0, "detected": 0, "detection_rate": 0.0}
+        result.metrics = {"violation_cases": 0, "detected": 0, "detection_rate": 0.0,
+                          "truth_source": truth_source}
         return result
 
     detected = 0
@@ -173,6 +206,7 @@ def run_detection(rules_dir: Path, thresholds: Dict[str, Any]) -> SuiteResult:
             "violation_cases": len(violation_cases), "detected": detected,
             "detection_rate": float(detection_rate),
             "clean_cases": 0, "false_positives": 0, "false_positive_rate": 0.0,
+            "truth_source": truth_source,
         }
         return result
 
@@ -197,18 +231,31 @@ def run_detection(rules_dir: Path, thresholds: Dict[str, Any]) -> SuiteResult:
         "false_positive_rate": float(fp_rate),
         "min_accuracy": float(min_accuracy),
         "max_false_positive": float(max_fp),
+        "truth_source": truth_source,
     }
     result.passed = detection_rate >= min_accuracy and fp_rate <= max_fp
     return result
 
 
 def run_overall(rules_dir: Path, thresholds: Dict[str, Any]) -> SuiteResult:
-    """样本驱动：整体结论一致率（``expected_overall`` vs 引擎聚合结论）。"""
-    cases = _sample_cases(rules_dir)
+    """样本驱动：整体结论一致率（``expected_overall`` vs 引擎聚合结论）。
+
+    **本套件是样本驱动 + 双向可证伪的**：
+      * 引擎聚合算错 → 一致率跌破门槛（``test_probe_overall_suite_fails_when_...``
+        注入"聚合恒 compliant"的缺陷，本套件必须变红）；
+      * 真值库期望被篡改 → 一致率同样跌破门槛（探活第二条注入方向）。
+
+    因为期望读的是**冻结真值库**（``_sample_cases`` 入库件优先），
+    改规则数值不会让它变红（两边一起变），故探活注入方向必须落在
+    "引擎聚合"或"真值期望"上——与 boundary 的规则驱动情形正好相反。
+    """
+    cases, truth_source = _sample_cases(rules_dir)
     result = SuiteResult(name=SUITE_OVERALL)
     if not cases:
         result.not_enabled = True
         result.notes = "用例未生成（分母为 0），整体一致率不可判定"
+        result.metrics = {"cases": 0, "matched": 0, "accuracy": 0.0,
+                          "truth_source": truth_source}
         return result
 
     matched = 0
@@ -227,6 +274,7 @@ def run_overall(rules_dir: Path, thresholds: Dict[str, Any]) -> SuiteResult:
     result.metrics = {
         "cases": len(cases), "matched": matched, "accuracy": float(rate),
         "min_accuracy": float(min_accuracy),
+        "truth_source": truth_source,
     }
     result.passed = rate >= min_accuracy
     return result

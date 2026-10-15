@@ -252,6 +252,24 @@ RULESET_FILES = {
 }
 
 
+def parse_pack(dimension: str, raw: Dict[str, Any]) -> RulePack:
+    """把已解析的规则包 JSON 转成 ``RulePack``（**唯一解析路径**）。
+
+    ``load_pack`` 是"读文件 + 本函数"；生成器要用**内存中的**规则包内容
+    算覆盖登记时也走本函数——两条路径各写一套解析 = 最隐蔽的口径漂移。
+    """
+    if dimension not in DIMENSIONS:
+        raise RulePackError("未知维度 %r" % (dimension,))
+    rules = [_rule_from_dict(item, dimension) for item in raw.get("rules", [])]
+    return RulePack(
+        dimension=dimension,
+        ruleset_version=str(raw.get("ruleset_version", "")),
+        rules=rules,
+        source_file=str(raw.get("source_file", "")),
+        notes=str(raw.get("notes", "")),
+    )
+
+
 def load_pack(dimension: str, rules_dir: Path) -> RulePack:
     """加载单维度规则包。
 
@@ -268,14 +286,9 @@ def load_pack(dimension: str, rules_dir: Path) -> RulePack:
         raw = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError) as exc:
         raise RulePackError("规则包 %s 无法解析：%s" % (path.name, exc))
-    rules = [_rule_from_dict(item, dimension) for item in raw.get("rules", [])]
-    return RulePack(
-        dimension=dimension,
-        ruleset_version=str(raw.get("ruleset_version", "")),
-        rules=rules,
-        source_file=str(path),
-        notes=str(raw.get("notes", "")),
-    )
+    pack = parse_pack(dimension, raw)
+    pack.source_file = str(path)
+    return pack
 
 
 def load_manifest(rules_dir: Path) -> Dict[str, Any]:

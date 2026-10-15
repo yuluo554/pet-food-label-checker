@@ -50,10 +50,18 @@ for _stream_name in ("stdout", "stderr"):
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
-from pflc.rules import RULESET_FILES  # noqa: E402
+from pflc.rules import RULESET_FILES, load_pack  # noqa: E402
+from pflc.benchmark.cases import (  # noqa: E402
+    CASES_FILENAME,
+    coverage_from_cases,
+    generate_cases,
+    load_cases,
+)
 
 CLAUSES_DIR = ROOT / "data" / "knowledge" / "clauses"
 RULES_DIR = ROOT / "data" / "rules"
+BENCHMARK_DIR = ROOT / "data" / "benchmark"
+CASES_PATH = BENCHMARK_DIR / CASES_FILENAME
 
 #: 规则包版本（人工维护；进 manifest 与每份规则包）
 RULESET_VERSION = "2026.1"
@@ -115,8 +123,13 @@ def build_pack(dimension: str, clauses: List[Dict[str, Any]],
 
 
 def build_manifest(packs: Dict[str, Dict[str, Any]],
-                   sources: Dict[str, Any], version: str) -> Dict[str, Any]:
-    """组装 manifest：版本锚点 + 门槛下发 + 覆盖登记 + 来源块。"""
+                   sources: Dict[str, Any], version: str,
+                   coverage: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
+    """组装 manifest：版本锚点 + 门槛下发 + 覆盖登记 + 来源块。
+
+    ``coverage`` 由 ``_coverage_from_truth()`` 实算后传入——**覆盖登记必须与
+    冻结真值库同源**，手写清单必然漂移（见 plan/05 §4.5）。
+    """
     source_list = []
     for doc_id in sorted(sources):
         if doc_id.startswith("_"):
@@ -133,19 +146,14 @@ def build_manifest(packs: Dict[str, Dict[str, Any]],
             "captured_at": item.get("captured_at", ""),
             "sha256": item.get("sha256", ""),
         })
-
-    # 覆盖登记：**总数/采样数双数**，并显式声明"抽样覆盖非穷举"（见 plan/03 D17）
-    coverage: Dict[str, Any] = {}
-    for dim in sorted(packs):
-        total = len(packs[dim]["rules"])
-        coverage[dim] = {
-            "total_rules": total,
-            "verified_rules": sum(1 for r in packs[dim]["rules"]
-                                  if r.get("status") == "verified"),
-            "sampled_in_truth": None,  # M4 由基准生成器回填
-            "sample_list": [],
-            "note": "抽样覆盖、非逐因素穷举（M4 回填采样数与清单）",
-        }
+    # 缺维度时补空登记：manifest 的 coverage 必须与规则包维度集合一致，
+    # 否则"没登记"会被读成"这一维不用覆盖"。
+    for dim in ("label", "nutrition", "claim"):
+        coverage.setdefault(dim, {
+            "total_rules": 0, "verified_rules": 0,
+            "sampled_in_truth": 0, "sample_list": [],
+            "note": "该维度无规则包",
+        })
 
     return {
         "ruleset_version": version,
@@ -154,6 +162,22 @@ def build_manifest(packs: Dict[str, Dict[str, Any]],
         "coverage": coverage,
         "sources": source_list,
     }
+
+
+def _coverage_from_truth(packs: Dict[str, Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
+    """覆盖登记的**唯一来源**：由规则包生成真值库，再从真值库实算。
+
+    顺序约束（见 plan/05 §4.5）：规则包 → 真值库 → 回填 coverage →
+    重冻结 manifest。这里直接调生成器（不读盘），保证"登记的数"与
+    "真值库里的数"同源；入库件与生成器输出的位级一致由 ``gen_cases.py --check``
+    单独守门。
+    """
+    from pflc.rules import parse_pack
+
+    loaded = {dim: parse_pack(dim, packs[dim])
+              for dim in ("label", "nutrition", "claim")}
+    cases = generate_cases(RULES_DIR, packs=loaded)
+    return coverage_from_cases(cases, loaded)
 
 
 def generate() -> Dict[str, Dict[str, Any]]:
@@ -165,9 +189,10 @@ def generate() -> Dict[str, Dict[str, Any]]:
         if isinstance(clauses, dict):
             clauses = clauses.get("rules", [])
         packs[dim] = build_pack(dim, clauses, sources, RULESET_VERSION)
+    coverage = _coverage_from_truth(packs)
     packs["__manifest__"] = build_manifest(
         {k: v for k, v in packs.items() if not k.startswith("__")},
-        sources, RULESET_VERSION)
+        sources, RULESET_VERSION, coverage)
     return packs
 
 

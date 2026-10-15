@@ -18,8 +18,14 @@ from typing import Any, Dict, List, Tuple
 
 #: 随包的数据目录白名单（**只收运行必需**）。
 #: 版权敏感原文快照（knowledge/raw/）**不入包**——它是核对用素材，不是运行时依赖。
+#:
+#: ``benchmark`` 必须入包：GUI 与 CLI 都带基准功能，而基准的期望来源是
+#: **入库冻结真值库**（``data/benchmark/cases.json``）。不带它，冻结态只能
+#: 回落现场重算——"期望锚定冻结真值"在发行包里就成了空话（源码态绿、
+#: 发行态名不副实，正是本项目明令避免的失效模式）。
 DATA_WHITELIST: Tuple[str, ...] = (
     "rules",
+    "benchmark",
 )
 
 #: 禁区成分（顶层匹配，**不按任意层级**——按任意层级会把依赖包自带的

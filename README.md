@@ -6,9 +6,9 @@
 
 [![ci](https://github.com/yuluo554/pet-food-label-checker/actions/workflows/ci.yml/badge.svg)](https://github.com/yuluo554/pet-food-label-checker/actions/workflows/ci.yml)
 
-> **状态**：✅ **M3 规则引擎三模块已完成**——标示项检查（`presence`）/ 营养限值判定（`threshold`）/ 宣称核查（`claim_support`）三个判定维度全部可用，逐项**三态结论 + 条款锚点**；双重门控、零生效维度排除、义务类型分栏齐备。规则包 **45 条**（`label` 8 / `nutrition` 32 / `claim` 5），其中 **43 条已挂原文核对（`status=verified`）、2 条 `pending`**；基准四套件全部达标。未挂原文核对的规则不进入判定路径，报告会显式列出。
+> **状态**：✅ **M4 合成标签基准已完成**——判定引擎三模块（标示项 / 营养限值 / 宣称核查）齐备，规则包 **45 条**（`label` 8 / `nutrition` 32 / `claim` 5，其中 **43 条已挂原文核对、2 条 `pending`**）。基准四套件**全部达标**，且期望来源可核证：真值库 `data/benchmark/cases.json`（16 用例）入仓、基准真的读它、`gen_cases.py --check` 位级守门。未挂原文核对的规则不进入判定路径，报告会显式列出。
 >
-> **本地等价校验通过**（Python 3.8 与 3.12 双解释器 **231 项测试** + 六道守门全绿）；**未接远端，CI 待首推验证**——未推送 = 未跑 CI。
+> **本地等价校验通过**（Python 3.8 与 3.12 双解释器 **255 项测试** + **六道 OK 标记门**（`TRANSCRIBE_OK` / `FROZEN_RULESET_OK` / `FROZEN_CASES_OK` / `FROZEN_SAMPLES_OK` / `DESSENSITIZE_AUDIT_OK` / `SMOKE_CLI_OK`）+ 基准四套件达标）；**未接远端，CI 待首推验证**——未推送 = 未跑 CI。
 
 ---
 
@@ -189,6 +189,22 @@ GB/T 31216/31217 的理化指标表头写明 **"指标（以干物质计）/%"**
 
 **空分母不冒充通过**：零样本时 `not_enabled=true` + notes 声明"该类用例未生成" + **exit 1**（`hits(0) <= max(0)` 恒真就是假门）。
 
+### 实测指标（M4 末态）
+
+下表的数值取自 `python -m pflc.cli bench` 的实际输出（**不手抄**——`tests/test_readme_bench_metrics.py` 会把 README 里的数与实跑结果逐项比对，手改 README 不会变绿）：
+
+| 套件 | 实测指标 |
+|---|---|
+| `detection` | `violation_cases=12`、`detected=12`、`detection_rate=1.0`、`false_positive_rate=0.0`（合规样例 4 件零误报） |
+| `overall` | `cases=16`、`matched=16`、`accuracy=1.0` |
+| `boundary` | `rules=30`、`checked=60`、`passed=60`、`rate=1.0`（±0.01 邻域两侧断言全中） |
+| `traceability` | `effective_rules=43`、`resolvable=43`、`rate=1.0` |
+
+> **真值来源可核证**：`detection` 与 `overall` 的 metrics 里带 `truth_source=frozen`
+> ——基准读的是入库冻结真值库 `data/benchmark/cases.json`，不是每次现场重算。
+> 该入库件配 `python tools/gen_cases.py --check` 常驻守门（入库件与生成器输出位级一致），
+> CI 亦跑此步。基线偏离即报配置错误（exit 2），**不静默重算**。
+
 > **当前状态**：规则包已录入并逐条核对，四套件**全部达标**（`bench` 返回 exit 0）。阈值由 `manifest.json` 随规则包下发（`min_accuracy` / `max_false_positive`），基准层只读、不回落代码默认值。
 
 ---
@@ -217,7 +233,7 @@ GB/T 31216/31217 的理化指标表头写明 **"指标（以干物质计）/%"**
 plan/          计划文档（00 总览 / 01 题面 / 02 需求 / 03 架构 / 04 详设 / 05 数据 / 06 里程碑 / 07 对标与决策）
 data/          数据层（knowledge 原文快照 / rules 冻结规则包 / samples 夹具 / benchmark 真值库）
 src/pflc/      主包（model / parse / rules / engine / report / pipeline / cli / gui / benchmark）
-tools/         生成器与守门脚本（gen_rulesets / gen_samples / audit_desensitize / verify_frozen / smoke_cli / pflc.spec）
+tools/         生成器与守门脚本（gen_rulesets / gen_cases / gen_samples / audit_desensitize / verify_frozen / smoke_cli / pflc.spec）
 tests/         测试（含零字面量门禁 / AST 分层门禁 / EOL 门禁 / 探活变异验证）
 docs/          技术报告与演示物料
 ```
@@ -257,6 +273,7 @@ docs/          技术报告与演示物料
 python -m pytest -q                     # 全量测试
 python tools/transcribe_clauses.py --check  # 条文转录位级一致守门
 python tools/gen_rulesets.py --check    # 规则包位级一致守门
+python tools/gen_cases.py --check       # 冻结真值库位级一致守门
 python tools/gen_samples.py --check     # 夹具位级一致守门
 python tools/audit_desensitize.py --selftest   # 脱敏审计器阳性/阴性对照
 python tools/audit_desensitize.py --tracked    # 已跟踪文件脱敏审计（HARD 0 / REVIEW 0）

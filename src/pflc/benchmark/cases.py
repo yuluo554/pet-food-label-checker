@@ -26,6 +26,7 @@ from ..model import (
     DIM_LABEL,
     DIM_NUTRITION,
     FIELD_MOISTURE,
+    STATUS_VERIFIED,
     VERDICT_COMPLIANT,
     VERDICT_NONCOMPLIANT,
     VERDICT_NOT_PROVIDED,
@@ -34,6 +35,7 @@ from ..model import (
     CheckResult,
     format_decimal,
 )
+from ..rules import RulePackError
 from .rng import SplitMix64
 
 #: 假品牌名白名单——**禁止真实品牌名入库为基准样例**（见 plan/05 §四.4）
@@ -63,6 +65,20 @@ DEFAULT_PER_TYPE = 4
 
 #: 生成器版本（进真值文件，便于溯源"这份真值由哪版生成器产出"）
 GENERATOR_VERSION = "1"
+
+#: 冻结真值库文件名（入库件；见 plan/03 D11）
+CASES_FILENAME = "cases.json"
+
+#: 覆盖登记声明（**写清口径**，否则"采样数"三个字本身就歧义）。
+#:
+#: ``sampled_in_truth`` 的定义见 ``sampled_rule_ids``：真值库为该规则写下了
+#: **显式逐条期望**（``expected_findings`` 的 key）。**不是**"被用例触达的规则数"
+#: ——后者恒等于生效规则总数，是又一个假台账。
+COVERAGE_NOTE = (
+    "抽样覆盖、非逐因素穷举。sampled_in_truth = 真值库为该规则写下显式逐条期望"
+    "（expected_findings）的规则数；合规类用例虽逐条判了全部生效规则但无显式期望，"
+    "故不计入采样数"
+)
 
 
 class BrandWhitelistError(Exception):
@@ -164,21 +180,30 @@ def _to_declared(limit: Decimal, op: str, basis: str,
 
 
 def generate_cases(rules_dir: Path, per_type: int = DEFAULT_PER_TYPE,
-                   seed: int = 20261015) -> Dict[str, Any]:
+                   seed: int = 20261015,
+                   packs: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """程序化生成四类合成标签样例 + 植入真值。
 
     **数值全部来自规则包**（经 ``load_pack``），生成器里不出现政策数值字面量——
-    与"零政策字面量门禁"同一条纪律。
+    与"零政策数值字面量门禁"同一条纪律。
+
+    ``packs`` 可传**已加载的** ``{维度: RulePack}``（生成器用内存中的规则包
+    算覆盖登记时走这条），默认从 ``rules_dir`` 加载——**同一套生成逻辑**，
+    不因入口不同而产出不同的真值。
     """
     from ..rules import KIND_THRESHOLD, load_pack
 
     rng = SplitMix64(seed)
-    nutrition = load_pack("nutrition", rules_dir)
+    if packs is None:
+        nutrition = load_pack("nutrition", rules_dir)
+        label_pack = load_pack("label", rules_dir)
+        claim_pack = load_pack("claim", rules_dir)
+    else:
+        nutrition = packs["nutrition"]
+        label_pack = packs["label"]
+        claim_pack = packs["claim"]
     thresholds = [r for r in nutrition.effective() if r.kind == KIND_THRESHOLD]
-
-    label_pack = load_pack("label", rules_dir)
     presence_rules = {r.target: r for r in label_pack.effective()}
-    claim_pack = load_pack("claim", rules_dir)
     claim_rules = list(claim_pack.effective())
 
     cases: List[Dict[str, Any]] = []
@@ -385,18 +410,75 @@ def compare_nonpass(expected: Dict[str, str],
     return {"missing": missing, "unexpected": unexpected, "mismatched": mismatched}
 
 
+def cases_path_for(rules_dir: Path) -> Path:
+    """真值库入库件路径（数据布局：``<data>/rules`` 与 ``<data>/benchmark`` 同级）。
+
+    单一定义源——工具、基准、测试**共用**它，避免各自拼路径而漂移。
+    """
+    return Path(rules_dir).parent / "benchmark" / CASES_FILENAME
+
+
+def render_cases(cases: Dict[str, Any]) -> str:
+    """真值库的确定性文本形态（**无时间戳**、固定缩进、固定键序）。
+
+    落盘与位级比对共用本函数——否则"写的时候一种序列化、比的时候另一种"，
+    守门比的是一个永远不存在的字节串（假门）。
+    """
+    return json.dumps(cases, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+
+
 def write_cases(cases: Dict[str, Any], path: Path) -> None:
-    """落盘真值库。**无时间戳**、固定缩进、固定键序——保证逐字节可复现。"""
+    """落盘真值库（逐字节可复现）。"""
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    payload = json.dumps(cases, ensure_ascii=False, indent=2, sort_keys=True)
     with open(path, "w", encoding="utf-8", newline="\n") as fh:
-        fh.write(payload + "\n")
+        fh.write(render_cases(cases))
+
+
+def _case_brand(case: Dict[str, Any]) -> str:
+    """取用例文本首行的品牌名（生成侧与载入侧**同一判据**）。"""
+    text = str(case.get("text", ""))
+    return text.split("\n", 1)[0].split(" ")[0] if text else ""
+
+
+def assert_cases_brands_allowed(cases: Dict[str, Any]) -> None:
+    """载入侧白名单硬断言（K18 的**第二个实例**）。
+
+    生成侧已有 ``assert_brand_allowed``，但载入侧原本零校验——实测：
+    手工构造含真实品牌名的 ``cases.json`` 交给 ``load_cases`` 会被**原样接受**。
+    一旦入库件被手改、或未来支持外部真值库，真实品牌数据就能绕过白名单
+    进入基准真值，与"真实品牌数据与合成基准严格隔离"直接冲突。
+
+    **同一口径要一次对齐全部实例**（M2 的教训：一侧修了、另一侧漏了 = 假门）。
+    """
+    declared = cases.get("brand_whitelist")
+    if list(declared or []) != list(BRAND_WHITELIST):
+        raise BrandWhitelistError(
+            "真值库声明的 brand_whitelist 与生成器白名单不一致：%r" % (declared,)
+        )
+    for case in cases.get("cases", []):
+        brand = _case_brand(case)
+        if brand not in BRAND_WHITELIST:
+            raise BrandWhitelistError(
+                "真值库用例 %s 的品牌名 %r 不在假品牌名白名单内；"
+                "禁止真实品牌数据进入合成基准" % (case.get("case_id", "<无 id>"), brand)
+            )
 
 
 def load_cases(path: Path) -> Dict[str, Any]:
+    """加载冻结真值库。**载入即校验品牌白名单**（见 ``assert_cases_brands_allowed``）。"""
     path = Path(path)
-    return json.loads(path.read_text(encoding="utf-8"))
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    assert_cases_brands_allowed(payload)
+    return payload
+
+
+def cases_match_generator(cases: Dict[str, Any], rules_dir: Path,
+                          per_type: int = DEFAULT_PER_TYPE,
+                          seed: int = 20261015) -> bool:
+    """入库件内容 == 生成器输出（内容级比对，不读盘）。"""
+    fresh = generate_cases(rules_dir, per_type=per_type, seed=seed)
+    return render_cases(cases) == render_cases(fresh)
 
 
 def check_cases_frozen(path: Path, rules_dir: Path,
@@ -411,5 +493,61 @@ def check_cases_frozen(path: Path, rules_dir: Path,
         return False
     on_disk = path.read_text(encoding="utf-8")
     fresh = generate_cases(rules_dir, per_type=per_type, seed=seed)
-    expected = json.dumps(fresh, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
-    return on_disk == expected
+    return on_disk == render_cases(fresh)
+
+
+# --------------------------------------------------------------------------
+# 覆盖登记（manifest.coverage 的唯一来源）
+# --------------------------------------------------------------------------
+
+
+def sampled_rule_ids(cases: Dict[str, Any], packs) -> Dict[str, List[str]]:
+    """真值库**对该规则带显式逐条期望**的规则 id（按维度归集）。
+
+    **口径（单一定义源，写死在这里）**：采样数 = ``expected_findings`` 的 key
+    归集出的规则数。即"真值库为这条规则写下了明确的非 pass 期望"。
+
+    **为什么不用"被用例触达的规则数"**：合规类用例的 ``expected_findings`` 是
+    ``{}``，但它同样逐条判了全部生效规则——按"触达"算，采样数会**恒等于生效
+    规则总数**（本项目实测 8/8、5/5、30/30）。那个数永远 100%，不携带任何信息，
+    且与"抽样覆盖非穷举"的声明自相矛盾——**它就是又一个假台账**。
+    """
+    by_id: Dict[str, str] = {}
+    for dim in sorted(packs):
+        for rule in packs[dim].rules:
+            by_id[rule.rule_id] = dim
+
+    out: Dict[str, List[str]] = {dim: [] for dim in sorted(packs)}
+    for case in cases.get("cases", []):
+        for rule_id in sorted(case.get("expected_findings", {})):
+            dim = by_id.get(rule_id)
+            if dim is None:
+                raise RulePackError(
+                    "真值库期望引用了规则包里不存在的规则 %r（真值与规则包已脱钩）"
+                    % rule_id
+                )
+            if rule_id not in out[dim]:
+                out[dim].append(rule_id)
+    return {dim: sorted(ids) for dim, ids in out.items()}
+
+
+def coverage_from_cases(cases: Dict[str, Any], packs) -> Dict[str, Dict[str, Any]]:
+    """从**冻结真值库 + 本轮规则包**实算覆盖登记。
+
+    ``packs`` 为 ``{维度: RulePack}``。返回与 ``manifest.coverage`` 同形。
+    """
+    sampled = sampled_rule_ids(cases, packs)
+    out: Dict[str, Dict[str, Any]] = {}
+    for dim in sorted(packs):
+        rules = packs[dim].rules
+        ids = sampled.get(dim, [])
+        out[dim] = {
+            "total_rules": len(rules),
+            "verified_rules": sum(
+                1 for r in rules if r.status == STATUS_VERIFIED
+            ),
+            "sampled_in_truth": len(ids),
+            "sample_list": ids,
+            "note": COVERAGE_NOTE,
+        }
+    return out

@@ -122,8 +122,18 @@
 
 ### 4.4 覆盖登记（防"假覆盖"）
 
-`manifest.json` 的 `coverage` 逐维度登记 **"规则包总数 / 已核对数 / 采样数 / 清单"**（`sampled_in_truth` 与 `sample_list` 待 M4 回填），并显式声明"**抽样覆盖、非逐因素穷举**"。
+`manifest.json` 的 `coverage` 逐维度登记 **"规则包总数 / 已核对数 / 采样数 / 清单"**，并显式声明"**抽样覆盖、非逐因素穷举**"。
 **判别**：只写分子不写分母就是假覆盖——故 `total_rules` 与 `verified_rules` **双数并列**。
+
+**M4 已回填采样数与清单**（`sampled_in_truth` / `sample_list`）：来源是**冻结真值库实算**
+（`tools/gen_rulesets.py` 生成规则包时由真值库回填，非手写——手写清单必然漂移）。
+M4 末态：label **3/8** · nutrition **4/32** · claim **3/5**。
+
+**口径写死在 `note` 里**："采样数 = 真值库为该规则**写下显式逐条期望**（`expected_findings`）的规则数"。
+**不是**"被用例触达的规则数"——合规类用例的 `expected_findings` 是 `{}`，但它同样逐条判了全部生效规则；
+按"触达"算会**恒等于生效规则总数**（8/8 · 30/30 · 5/5），那个数永远 100%、不携带信息，
+与"抽样覆盖非穷举"的声明自相矛盾 = **又一个假台账**。
+非空转守门：`tests/test_benchmark.py::test_coverage_sampled_count_is_not_vacuous`（断言采样数**严格小于**生效规则数）。
 
 ---
 
@@ -155,8 +165,15 @@ data/
 ├── rules/                    # 版本化规则包（生成器产出，禁手改）
 │   ├── ruleset-{label,nutrition,claim}.json
 │   └── manifest.json
-└── samples/                  # README 可跑输入夹具（生成器产出，位级一致守门）
+├── samples/                  # README 可跑输入夹具（生成器产出，位级一致守门）
+└── benchmark/                # 冻结真值库（M4 新增；生成器产出，位级一致守门）
+    └── cases.json            # 16 用例 = 四类 × 4，含植入真值与品牌白名单
 ```
+
+> **`benchmark/` 是 M4 新增的冻结产物**：基准的期望来源就是它（K29）。
+> 由 `tools/gen_cases.py --force` 产出、`--check` 位级守门（`FROZEN_CASES_OK`）；CI 跑该步。
+> 它**随包**（在 `DATA_WHITELIST` 里）——否则发行态的基准只能回落现场重算，
+> 源码态 `truth_source=frozen` 而发行态悄悄变成 `regenerated`（源码态绿、发行态名不副实）。
 
 ### 6.2 双重门控（每条规则两个独立状态）
 
@@ -171,6 +188,8 @@ data/
 
 - 规则包是**冻结产物，禁手改**：改需求走 `tools/transcribe_clauses.py --force` → `tools/gen_rulesets.py --force` 整目录重生成；
 - **位级一致守门**：`transcribe_clauses.py --check`（含**原文逐字包含断言**）与 `gen_rulesets.py --check` 输出 `TRANSCRIBE_OK` / `FROZEN_RULESET_OK`；
+- **M4 新增冻结产物**：`data/benchmark/cases.json`（真值库）由 `tools/gen_cases.py --force` 产出、`--check` 输出 `FROZEN_CASES_OK`；
+  **载入即校验品牌白名单**（`load_cases()`，K18 的第二个实例——白名单原先只在生成侧生效）；
 - **零政策字面量门禁（M1 勘误）**：禁用 token 从规则包**运行时实算**，扫描引擎/基准/CLI/GUI 源码含 docstring 与注释。**M0 的"绝对值 < 100 豁免"口径在真实数据下使门禁完全空转**（全部百分比限值都 < 100 → token 集为空 = 假门）；M1 改为**"整数形态且 < 20 才豁免、非整数一律不豁免"**，真实规则包下 token 集非空（11 个），并有"非空转"守门测试锁死。
 
 ### 6.4 数值基准（M1 新增，正确性关键）
@@ -237,3 +256,28 @@ GB/T 31216/31217 的理化指标表头写明 **"指标（以干物质计）/%"**
 
 **M4 待办**：见 `plan/HANDOFF-M4.md` §三（三处真实缺口：基准 fixtures 入仓 /
 覆盖登记双数回填 / 指标进 README）。
+
+---
+
+## 九、M4 末态快照（2026-10-15）
+
+| 项 | 状态 |
+|---|---|
+| 规则包文件 | ✅ 三份 + manifest，**45 条规则**（43 `verified` / 2 `pending`）——**M4 未改规则数值**，仅回填 manifest 的 `coverage` |
+| **冻结真值库** | ✅ **新增入仓** `data/benchmark/cases.json`（16 用例 = 合规/缺项/越限/宣称无支撑 各 4）；sha256 `f2019de7c34ec0748add306449edf9c560938e806f1c3e250f59b4730ef96811` |
+| 真值库生成器 | ✅ `tools/gen_cases.py`（`--force` / `--check` → `FROZEN_CASES_OK`），形态与 `gen_samples.py` 一致 |
+| **基准的期望来源** | ✅ **读入库件**（`truth_source=frozen` 进 metrics）；入库件与生成器不符 → `BenchConfigError`（exit 2），**不静默重算**（K29） |
+| **载入侧白名单** | ✅ `load_cases()` 载入即断言品牌白名单（K18 的第二个实例；原先只在生成侧生效） |
+| **覆盖登记** | ✅ 采样数/清单**从真值库实算回填**：label **3/8** · nutrition **4/32** · claim **3/5**；口径写进 `note`（K17） |
+| 基准四套件 | ✅ **全部达标**：detection 检出率 1.0 / 误报 0.0（12 违规 vs 4 合规）· overall 16/16 · boundary 60/60 · traceability 43/43 |
+| 探活 | ✅ **四套件齐备**（含 M4 补的 `overall`，配阳性对照 + 第二条注入方向） |
+| 指标进 README | ✅ 四套件实测指标 + `truth_source` 来源声明；配**行级**守门 `tests/test_readme_bench_metrics.py`（K30） |
+| 测试 | ✅ **255 项**（M3 末态 231 → +24），3.8 与 3.12 双解释器全绿 |
+| 变异验证 | ✅ **7 处**（含 1 个已知有效的对照组）；其中 2 处暴露出"假门"并当场改判据 |
+
+**M4 实测勘误 1 处**：`gen_rulesets.py` 原先只读条文块、不读真值库，覆盖登记无法回填——
+改为在 `generate()` 内**先由规则包生成真值库、再从真值库实算覆盖**
+（顺序：规则包 → 真值库 → 回填 coverage → 重冻结 manifest；位级一致未破）。
+
+**M4 未改的数据**：规则包数值、条文块、原文快照、输入夹具**全部未动**（四条冻结链各自的 `--check` 仍位级一致）。
+新增的只有 `data/benchmark/` 与 manifest 的 `coverage` 块。

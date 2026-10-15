@@ -61,6 +61,11 @@ jobs:
       - name: Frozen samples check
         run: python tools/gen_samples.py --check
 
+      # 真值库是"基准期望"的唯一来源——它被手改，"引擎对不对"就与
+      # "真值对不对"分不开了。这一步是"冻结真值"这件事的唯一证据。
+      - name: Frozen cases check
+        run: python tools/gen_cases.py --check
+
       # 脱敏审计器阳性/阴性对照（证明扫描器真的在扫）
       - name: Desensitize auditor selftest
         run: python tools/audit_desensitize.py --selftest
