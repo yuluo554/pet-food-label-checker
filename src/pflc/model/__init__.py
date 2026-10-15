@@ -18,7 +18,7 @@ from __future__ import annotations
 import hashlib
 from dataclasses import dataclass, field
 from decimal import Decimal
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 # --------------------------------------------------------------------------
 # 状态常量
@@ -213,6 +213,12 @@ class LabelCard:
     claims: List[Field] = field(default_factory=list)
     unparsed: List[str] = field(default_factory=list)
 
+    #: 本档案抽取宣称时使用的**词表**（来自规则包）。空元组 = 未按任何词表抽取。
+    #: 记下它是为了堵一个假结论：若调用方拿一份"未按规则包词表抽取"的档案去判定，
+    #: 规则会因 `target not in claim_names()` 判成 ``skipped``——**假 skipped**
+    #: （把"没抽到"当"没宣称"）。判定层据此与本轮规则包词表核对并重抽（见引擎）。
+    claim_vocab: Tuple[str, ...] = ()
+
     def __post_init__(self) -> None:
         if not self.card_id:
             self.card_id = compute_card_id(self.raw_text)
@@ -262,7 +268,11 @@ class LabelCard:
         return sorted(out)
 
     def to_dict(self) -> Dict[str, Any]:
-        """确定性字典表示（供报告与测试对账；Decimal 转字符串保精度）。"""
+        """确定性字典表示（供报告与测试对账；Decimal 转字符串保精度）。
+
+        ``claim_vocab`` 一并导出：档案的宣称抽取口径随它走，"逐字节一致"
+        的判据才完整（同一文本在不同词表下抽出不同宣称，是**两种档案**）。
+        """
 
         def _f(f: Field) -> Dict[str, Any]:
             return {
@@ -286,6 +296,7 @@ class LabelCard:
             "producer": _f(self.producer),
             "product_dates": _f(self.product_dates),
             "claims": [_f(c) for c in self.claims],
+            "claim_vocab": list(self.claim_vocab),
             "unparsed": sorted(self.unparsed),
         }
 

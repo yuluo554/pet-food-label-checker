@@ -23,8 +23,15 @@ BANNED_SCAN_DIRS = (SRC / "pflc", TOOLS)
 #: 扫描面排除（第三方/生成物）
 SCAN_EXCLUDE_PARTS = {"__pycache__", "gui"}
 
-#: 结构性常数豁免（<100 的小值：精度约定/下标/长度约束，非政策数值）
-STRUCTURAL_CONSTANT_CEILING = 100
+#: 结构性常数豁免上界：**整数形态**且绝对值小于此值 → 视为下标/计数/短文本长度。
+#:
+#: **非整数一律不豁免**——口径与引擎门禁（`pflc.rules._exempt_from_tokens`，见 K5）
+#: 完全一致。M0 这里写的是"绝对值 < 100"，而本项目的政策数值天然是小于一百的
+#: 百分数（实测 0.09–28）→ **整包放过，门禁空转**（M2 实测：往界面注入真实限值 28
+#: 仍绿）。"按大小豁免"与"零政策字面量"这个目标在数学上不相容——判别量是
+#: **这个数出现在哪里**（见下方 `test_gui_has_no_policy_numeric_literals`），
+#: 不是它多大。
+STRUCTURAL_CONSTANT_CEILING = 20
 
 
 def _python_sources(root: Path):
@@ -258,12 +265,27 @@ def test_gui_has_no_policy_numeric_literals():
 
     界面里内联政策值与引擎里内联是同一条罪——"抄进代码的第二份真相"。
 
-    **豁免口径写死**：
-      * ``abs(value) < 100`` 的结构性常数（下标/计数/短文本长度）；
-      * 赋值给**布局命名**（``*_WIDTH`` / ``*_HEIGHT`` / ``*_SIZE`` 等）的数值
-        ——窗口尺寸不是政策数值，但豁免只对**这些名字**成立，
-        界面里写 ``LIMIT = 150`` 仍会被抓。
+    **两条判据，缺一不可**（M2 修正）：
+
+      ① **规则包 token 实算**：界面里出现的数值若与**本轮规则包**的限值同形，
+         直接判违规——这是根治判据，不依赖任何大小启发式；
+      ② **结构性常数豁免**：整数形态且 ``abs(value) < 20``（下标/计数/短文本长度）；
+         **非整数一律不豁免**——口径与引擎门禁（K5）一致。
+
+    旧口径只有 ① 的缺失版：``abs(value) < 100`` 会把真实限值（实测 0.09–28）
+    **整包放过**，门禁变假门（M2 实测：注入真实限值 28 仍绿）。故本测试同时
+    断言"规则包 token 非空"（防空转）与"注入真实限值必须被抓"。
+
+    另有布局命名豁免（``*_WIDTH`` 等），但豁免只对**这些名字**成立，
+    界面里写 ``LIMIT = 150`` 仍会被抓。
     """
+    from pflc.rules import banned_numeric_tokens
+
+    rules_dir = ROOT / "data" / "rules"
+    tokens = banned_numeric_tokens(rules_dir)
+    #: 防空转：真实规则包下 token 集必须非空，否则判据①恒不触发
+    assert tokens, "真实规则包下禁用 token 集为空 = 界面门禁空转（假门）"
+
     violations = []
     for path in _gui_sources():
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
@@ -274,12 +296,35 @@ def test_gui_has_no_policy_numeric_literals():
             value = node.value
             if isinstance(value, bool) or not isinstance(value, (int, float)):
                 continue
-            if abs(value) < STRUCTURAL_CONSTANT_CEILING:
+            # 判据①：与规则包限值同形 → 无条件违规（不享结构性豁免）
+            rendered = format_decimal_literal(value)
+            if rendered in tokens or str(value) in tokens:
+                violations.append("%s:%d %s（命中规则包限值）"
+                                  % (path.name, node.lineno, value))
+                continue
+            # 判据②：结构性常数豁免（整数且 < 20；非整数不豁免）
+            if _is_structural_constant(value):
                 continue
             if _is_layout_assignment(tree, node, layout_names):
                 continue
             violations.append("%s:%d %s" % (path.name, node.lineno, value))
     assert violations == [], "GUI 层出现政策数值字面量：%s" % violations
+
+
+def format_decimal_literal(value) -> str:
+    """把字面量渲染成与规则包 token 同口径的字符串（去尾零、无 E 记号）。"""
+    from decimal import Decimal
+
+    from pflc.model import format_decimal
+
+    return format_decimal(Decimal(str(value)))
+
+
+def _is_structural_constant(value) -> bool:
+    """结构性常数判据：整数形态且绝对值 < 上界（非整数一律不豁免）。"""
+    if isinstance(value, float):
+        return False
+    return abs(value) < STRUCTURAL_CONSTANT_CEILING
 
 
 def _layout_constant_names(tree: ast.AST):
@@ -310,6 +355,45 @@ def _is_layout_assignment(tree: ast.AST, literal: ast.Constant, names) -> bool:
             if isinstance(target, ast.Name) and target.id in names:
                 return True
     return False
+
+
+def test_gui_policy_literal_gate_is_not_vacuous(tmp_path):
+    """**M2 实测勘误**：界面门禁的豁免口径曾使门整包放过。
+
+    旧口径 ``abs(value) < 100`` 会把真实限值（实测 0.09–28）全部豁免——
+    注入真实限值 28 到界面仍绿 = **假门**。本测试锁死两条：
+      ① 真实规则包下 token 集非空（否则判据①恒不触发）；
+      ② 注入与规则包限值同形的数值 → 必须被抓。
+    """
+    from decimal import Decimal
+
+    from pflc.rules import banned_numeric_tokens
+
+    tokens = banned_numeric_tokens(ROOT / "data" / "rules")
+    assert tokens, "真实规则包下 token 集为空 = 假门"
+
+    # 取一个真实限值（整数形态），确认旧口径会放过它、新口径必须抓住
+    sample = next(t for t in tokens if t.isdigit())
+    assert not _is_structural_constant(int(sample)), (
+        "真实限值 %s 竟被结构性豁免口径放过 = 假门" % sample)
+
+    # 变异验证：注入该限值到界面源码文本 → 判据①必须命中
+    assert format_decimal_literal(int(sample)) in tokens
+    assert not _is_structural_constant(float(sample)), "非整数形态一律不豁免"
+
+
+def test_structural_constant_exemption_is_not_overbroad():
+    """结构性豁免的边界：整数 <20 放过，**非整数一律不放过**。
+
+    反例锚点：``0.45``（真实限值，非整数）在旧口径下会被放过。
+    """
+    assert _is_structural_constant(4)
+    assert _is_structural_constant(19)
+    assert not _is_structural_constant(20)
+    assert not _is_structural_constant(28)
+    assert not _is_structural_constant(0.45)
+    assert not _is_structural_constant(0.09)
+    assert not _is_structural_constant(900)
 
 
 def test_gui_layering_gate_is_not_vacuous():

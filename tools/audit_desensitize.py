@@ -324,20 +324,28 @@ def _scan_text(text: str, tokens: Dict[str, List[str]],
             continue
         _hit("commit_email", HARD, re.escape(email))
     # 通用邮箱形态（REVIEW；豁免 noreply 与 example.com 保留域）
-    generic = re.compile(r"\b[A-Za-z0-9][A-Za-z0-9._%+-]*@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+\b")
-    count = 0
-    for line in lines:
-        if ALLOW_MARKER in line:
-            continue
-        for match in generic.finditer(line):
-            value = match.group(0)
-            if _is_exempt_email(value):
+    #
+    # **豁免必须走同一张表**：M1 收尾给原文快照 `reprint-feedchina.txt` 声明了
+    # `generic_email` 豁免，但这段是内联实现、没调 `_is_exempt`——**豁免是死的**，
+    # 该文件照报 REVIEW 1（M2 实测）。这正是"门禁看起来有处置、实际空转"的失效模式：
+    # 豁免表里写了一条，代码里却没人读它。豁免绑定的是「该文件 + 该规则名」，
+    # 该文件的其他规则（如手机号/密钥）仍照常生效。
+    if not _is_exempt(location, "generic_email"):
+        generic = re.compile(
+            r"\b[A-Za-z0-9][A-Za-z0-9._%+-]*@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+\b")
+        count = 0
+        for line in lines:
+            if ALLOW_MARKER in line:
                 continue
-            if value.lower().endswith("@example.com"):
-                continue
-            count += 1
-    if count:
-        findings.append(Finding("generic_email", REVIEW, location, count))
+            for match in generic.finditer(line):
+                value = match.group(0)
+                if _is_exempt_email(value):
+                    continue
+                if value.lower().endswith("@example.com"):
+                    continue
+                count += 1
+        if count:
+            findings.append(Finding("generic_email", REVIEW, location, count))
     # 手机号（HARD；hex 边界环视防 sha256 误报）
     _hit("phone", HARD, r"(?<![0-9a-fA-F])1[3-9]\d{9}(?![0-9a-fA-F])")
     # 身份证（HARD；hex 边界环视防 Panose 误报）
@@ -500,8 +508,31 @@ def selftest() -> int:
         print("selftest 失败：豁免文件的其他规则被一并放过", file=sys.stderr)
         ok = False
 
+    # --- 豁免**非空转**对照：generic_email 豁免真的接上了（M2 修正）-----
+    # 失效模式：豁免表里声明了 `generic_email`，扫描器却内联实现、没读豁免表——
+    # 豁免是死的，文件照报 REVIEW。故这里必须**双向**验：
+    #   ④ 快照文件里的通用邮箱 → 按豁免放过
+    #   ⑤ 同样内容换个文件 → 必须照常报 REVIEW（证明豁免不是"全放过"）
+    synthetic_generic_mail = "%s@%s.%s" % ("contact", "reprint-site", "example")
+    exempt_target = "data/knowledge/raw/moa-20-2018-annex3/reprint-feedchina.txt"
+    empty_tokens = {"user_name": [], "home_patterns": [], "commit_emails": [],
+                    "repo_path_segments": []}
+    if _scan_text(synthetic_generic_mail, empty_tokens, exempt_target):
+        print("selftest 失败：原文快照的 generic_email 豁免未生效（豁免是死代码）",
+              file=sys.stderr)
+        ok = False
+    if not _scan_text(synthetic_generic_mail, empty_tokens, "src/pflc/other.py"):
+        print("selftest 失败：generic_email 豁免被过度放宽（其他文件不再报命中）",
+              file=sys.stderr)
+        ok = False
+    # ⑥ 豁免**只**对该规则名生效：同文件的密钥/手机号仍须命中
+    if not _scan_text("sk-" + "C" * 24, empty_tokens, exempt_target):
+        print("selftest 失败：豁免文件的其他规则被一并放过（generic_email 之外的）",
+              file=sys.stderr)
+        ok = False
+
     if ok:
-        print("selftest 通过（阳性 4 项 / 阴性 5 项 / 放行 1 项 / 豁免边界 3 项）")
+        print("selftest 通过（阳性 4 项 / 阴性 5 项 / 放行 1 项 / 豁免边界 6 项）")
         return 0
     return 1
 

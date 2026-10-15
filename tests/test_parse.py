@@ -83,9 +83,13 @@ def test_net_content_unit_preserved():
 
 
 def test_claims_extracted():
-    card = parse_label("测试粮A 猫粮 成年\n产品特点：天然、无谷\n")
+    """宣称词表由调用方传入（来自规则包）——解析层不留第二份口径。"""
+    card = parse_label("测试粮A 猫粮 成年\n产品特点：天然、无谷\n",
+                       claim_words=("天然", "无谷", "鲜肉"))
     assert "天然" in card.claim_names()
     assert "无谷" in card.claim_names()
+    # 词表外的词面不得被抽出（"全价"是产品类型词，不是宣称）
+    assert "全价" not in card.claim_names()
 
 
 def test_mass_conversion_shares_alias_table():

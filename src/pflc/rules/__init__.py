@@ -24,6 +24,7 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 from ..model import (
     BASIS_AS_FED,
     BASIS_DRY_MATTER,
+    DIM_CLAIM,
     DIMENSIONS,
     EFFECT_CONDITIONAL,
     EFFECT_OBLIGATION,
@@ -311,6 +312,23 @@ def pending_rule_ids(rules_dir: Path) -> List[str]:
     for dim in DIMENSIONS:
         out.extend(r.rule_id for r in load_pack(dim, rules_dir).pending())
     return sorted(out)
+
+
+def claim_vocabulary(rules_dir: Path) -> Tuple[str, ...]:
+    """宣称词表：**从规则包实算**，解析层不持有第二份口径（见 plan/04 §2.2）。
+
+    取 ``claim`` 维度的 ``target`` 集——规则包的 ``target`` 就是宣称词面。
+    两份口径必然漂移的失效模式：规则包加一条宣称而解析层不认它 →
+    该宣称永远抽不出来 → 规则永远判"未宣称" = **假 skipped**。
+
+    **含 pending 条目**：pending 不进判定路径，但词面仍要抽出来记进档案——
+    否则"规则待核对"期间该宣称在报告里凭空消失，等它转 verified 时
+    也无从判断"当时到底有没有宣称"。抽出来只进档案、不产生结论。
+
+    返回**排序去重**的元组：顺序确定 → 档案逐字节可复现。
+    """
+    pack = load_pack(DIM_CLAIM, rules_dir)
+    return tuple(sorted({r.target for r in pack.rules if r.target}))
 
 
 # --------------------------------------------------------------------------

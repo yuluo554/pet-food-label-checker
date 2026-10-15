@@ -32,7 +32,7 @@ from .model import (
 )
 from .parse import parse_label
 from .report import SEC_FINDINGS, export, load_meta, report_sections
-from .rules import DIMENSIONS, STATUS_VERIFIED, load_pack
+from .rules import DIMENSIONS, STATUS_VERIFIED, claim_vocabulary, load_pack
 
 __all__ = [
     "build_card",
@@ -59,15 +59,21 @@ __all__ = [
 # --------------------------------------------------------------------------
 
 
-def build_card(raw_text: str, source: str = "") -> LabelCard:
-    """文本 → 标签档案（唯一入口，GUI 的输入校验也走这里）。"""
-    return parse_label(raw_text, source=source)
+def build_card(raw_text: str, source: str = "",
+               rules: Optional[Path] = None) -> LabelCard:
+    """文本 → 标签档案（唯一入口，GUI 的输入校验也走这里）。
+
+    **宣称词表由本层从规则包取出后传入解析层**：解析层保持"纯函数、不读文件"，
+    而"词表来自规则包"这条口径只有一处实现（见 plan/04 §2.2）。
+    """
+    return parse_label(raw_text, source=source,
+                       claim_words=claim_vocabulary(rules or default_rules_dir()))
 
 
-def read_card(path: Path) -> LabelCard:
+def read_card(path: Path, rules: Optional[Path] = None) -> LabelCard:
     """从文件读入并解析（UTF-8）。"""
     text = Path(path).read_text(encoding="utf-8")
-    return parse_label(text, source=Path(path).name)
+    return build_card(text, source=Path(path).name, rules=rules)
 
 
 # --------------------------------------------------------------------------

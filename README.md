@@ -6,9 +6,9 @@
 
 [![ci](https://github.com/yuluo554/pet-food-label-checker/actions/workflows/ci.yml/badge.svg)](https://github.com/yuluo554/pet-food-label-checker/actions/workflows/ci.yml)
 
-> **状态**：✅ **M1 数据先行已完成**——规则包 **45 条**（`label` 8 / `nutrition` 32 / `claim` 5），其中 **43 条已挂原文核对（`status=verified`）、2 条 `pending`**；基准四套件全部达标。未挂原文核对的规则不进入判定路径，报告会显式列出。
+> **状态**：✅ **M2 标签文本导入器已完成**——解析层补到 FR-01 全覆盖，M1 实测发现的四处缺口（宣称词表两份口径 / 生命阶段混入产品类型词 / 净含量未知单位口径 / 日期不校验合法性）逐条修掉；规则包 **45 条**（`label` 8 / `nutrition` 32 / `claim` 5），其中 **43 条已挂原文核对（`status=verified`）、2 条 `pending`**；基准四套件全部达标。未挂原文核对的规则不进入判定路径，报告会显式列出。
 >
-> **本地等价校验通过**（Python 3.8 与 3.12 双解释器 185 项测试 + 五道守门全绿）；**未接远端，CI 待首推验证**——未推送 = 未跑 CI。
+> **本地等价校验通过**（Python 3.8 与 3.12 双解释器 **229 项测试** + 五道守门全绿）；**未接远端，CI 待首推验证**——未推送 = 未跑 CI。
 
 ---
 
@@ -106,7 +106,7 @@ python -m pflc.cli gui
 
 ### 可直接复制的示例输入
 
-仓库自带四份合成夹具（由 `tools/gen_samples.py` 产出，纳入位级一致守门）：
+仓库自带五份合成夹具（由 `tools/gen_samples.py` 产出，纳入位级一致守门）：
 
 | 文件 | 植入情形 |
 |---|---|
@@ -114,6 +114,7 @@ python -m pflc.cli gui
 | `data/samples/label-demo-missing.txt` | 缺净含量 / 生产者 / 添加剂 |
 | `data/samples/label-demo-overlimit.txt` | 保证值低于限值 |
 | `data/samples/label-demo-claim.txt` | 宣称"天然、无谷"但缺原料组成支撑 |
+| `data/samples/label-demo-edge.txt` | 解析层边界：产品类型词"全价"与"幼年"同现 / 净含量未知单位 `oz` / 非法日期 `2026-13-45` |
 
 ---
 

@@ -48,6 +48,7 @@ from ..rules import (
     Rule,
     RulePack,
     RulePackError,
+    claim_vocabulary,
     load_pack,
 )
 
@@ -312,6 +313,31 @@ def judge_dimension(pack: RulePack, card: LabelCard) -> DimensionResult:
 # --------------------------------------------------------------------------
 
 
+def _reconcile_claim_vocabulary(card: LabelCard, rules_dir: Path) -> LabelCard:
+    """把档案的宣称口径对齐到**本轮规则包**（见 plan/04 §2.2）。
+
+    失效模式：调用方直接 ``parse_label(text)``（不传词表）造出档案，
+    再交给引擎判定。此时 ``card.claim_names()`` 恒为空，``claim_support``
+    规则会把每条宣称规则判成 ``skipped``——**假 skipped**：
+    把"这个词我没抽过"读成"标签上没宣称"。
+
+    修法不是让每个调用点自己记得传词表（那正是两份口径的来源），
+    而是在**唯一分派点**上核对并按需重抽：词表是 ``raw_text`` 与规则包的
+    确定函数，重抽不引入不确定性，且判定结论从此与"调用方是否传词表"无关。
+    """
+    vocab = claim_vocabulary(rules_dir)
+    if set(vocab).issubset(set(card.claim_vocab)):
+        # 档案已覆盖本轮词表（含"两者皆空"）→ 无需重抽
+        return card
+    if not vocab:
+        return card
+    from ..parse import extract_claims
+
+    card.claims = extract_claims(card.raw_text, vocab)
+    card.claim_vocab = tuple(vocab)
+    return card
+
+
 def check_card(card: LabelCard, rules_dir: Path,
                scope: str = "all") -> CheckResult:
     """**唯一分派点**：对一张标签档案跑全维度判定。
@@ -319,6 +345,9 @@ def check_card(card: LabelCard, rules_dir: Path,
     单件（``check_file``）与批量（``scan_dir``）都必须经此函数——
     两条通路各写一套分派 = 对同一文件给出不同结论。
     """
+    if scope == "all" or scope == DIM_CLAIM:
+        card = _reconcile_claim_vocabulary(card, rules_dir)
+
     if scope == "all":
         dims: Sequence[str] = DIMENSIONS
     else:
@@ -340,11 +369,16 @@ def check_card(card: LabelCard, rules_dir: Path,
 
 
 def check_file(path: Path, rules_dir: Path, scope: str = "all") -> CheckResult:
-    """单件核验。读取失败抛 ``OSError``，由调用方按"未判定"处置。"""
+    """单件核验。读取失败抛 ``OSError``，由调用方按"未判定"处置。
+
+    宣称词表从 ``rules_dir`` 取出后传给解析层——两条通路（单件/批量）都经
+    本函数，故口径只有一处。
+    """
     from ..parse import parse_label
 
     text = Path(path).read_text(encoding="utf-8")
-    card = parse_label(text, source=Path(path).name)
+    card = parse_label(text, source=Path(path).name,
+                       claim_words=claim_vocabulary(rules_dir))
     return check_card(card, rules_dir, scope=scope)
 
 
