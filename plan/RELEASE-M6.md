@@ -270,8 +270,12 @@ ubuntu runner 的仓库路径是 `/home/runner/work/<repo>/<repo>`，于是
 
 ### 残余对象（见 §三末）与 visibility
 
-仓库当前 **PUBLIC**，tag `v0.1.0` → `815b77a`（发布基线；`8230548` 仅补记文档 SHA，
-`src/`/`tools/pflc.spec` 未动，故 zip 与留档仍逐条一致）。
+仓库当前 **PUBLIC**；发布基线 = **tag `v0.1.0`**（权威值用 `git rev-list -n1 v0.1.0` 现取）。
+tag 之后的提交只改文档（`plan/` / `docs/` / `README.md`），**`src/` 与 `tools/pflc.spec` 未动**
+（`git diff v0.1.0..HEAD -- src/ tools/pflc.spec` 为空），故 zip 与留档仍逐条一致。
+
+上表里的 SHA 是**历史事件记录**（每行对应一次已发生的推送），保持原值；
+"当前基线"则一律以 tag 现取，**不写死 SHA**——本棒已做过两次历史重写，写死的值必然过期。
 
 ---
 

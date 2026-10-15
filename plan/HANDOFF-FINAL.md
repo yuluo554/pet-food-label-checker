@@ -14,7 +14,7 @@
 | 公开仓库 | <https://github.com/yuluo554/pet-food-label-checker> |
 | 可见性 | **PUBLIC**（三清完成后才切） |
 | Release | `v0.1.0` · <https://github.com/yuluo554/pet-food-label-checker/releases/tag/v0.1.0> |
-| 发布基线提交 | `815b77a`（= tag `v0.1.0` 指向的提交）<br>**注**：本棒做过**两次**历史重写（见 §四），早期提交的 SHA 已变；以本节为准 |
+| 发布基线提交 | **tag `v0.1.0`**——权威值用 `git rev-list -n1 v0.1.0` 现取（**故意不写死 SHA**：本文件每次改动都会移动 HEAD，写死的 SHA 必然过期；本棒已做过**两次**历史重写，早期 SHA 全部作废） |
 | 提交总数 | 17（`git rev-list --count HEAD`） |
 | 附件（ASCII 名） | `pflc-gui-windows-x64-0.1.0.zip`（165 文件 / 110.9 MB）<br>`pflc-cli-windows-x64-0.1.0.zip`（23 文件 / 16.5 MB） |
 | sha256 留档 | `docs/DIST-sha256-M6.txt`（zip sha256 + 文件数 + **树 sha256**） |
@@ -38,7 +38,7 @@ d9b63eab69a06155bbe6069ed9c6d678096bf8e8d56fdf28a8825748d8f7381d  pflc-cli-windo
 | 基准 | 四套件全达标，期望锚定冻结真值库（`truth_source=frozen`） | `py -X utf8 -m pflc.cli bench` |
 | 守门标记 | `TRANSCRIBE_OK` · `FROZEN_RULESET_OK` · `FROZEN_CASES_OK` · `FROZEN_SAMPLES_OK` · `DESSENSITIZE_AUDIT_OK` · `SMOKE_CLI_OK` · **`RELEASE_PACK_OK`** · **`VERIFY_FROZEN_OK`**（两树） · **`DEMO_ASSETS_OK`** | 见 §三 复跑手册 |
 | 冻结产物 | `dist/pflc/`（GUI 110.9 MB）+ `dist/pflc-cli-dist/`（CLI 16.5 MB），两树均 `VERIFY_FROZEN_OK` | 同上 |
-| CI | **7/7 全绿**（当前基线 `815b77a`：run `38709033624`） | `gh run list` |
+| CI | **7/7 全绿**（末次实测 run `38710895102`） | `gh run list` |
 | 脱敏 | `--tracked` HARD 0 / REVIEW 0；`--all` **HARD 0** | 见 §三 |
 
 ---
