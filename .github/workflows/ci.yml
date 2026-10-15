@@ -171,3 +171,17 @@ jobs:
       # 且与入仓留档一致（留档若与物料脱节，发行物料就不可核证）
       - name: Demo assets reproducible
         run: python tools/check_demo_reproducible.py
+
+      # 发布打包 + 三条判据（--check）：
+      #   ① 确定性（两次打包 sha256 一致）
+      #   ② 回读保真（解出的条目与源树逐字节相同）
+      #   ③ 产物本体脱敏扫描（exe/dll/pyd 里的 ASCII 与 UTF-16 路径）
+      # 第 ③ 条是发行侧唯一的脱敏门：dist/ 在 .gitignore 内，
+      # `audit_desensitize.py --tracked` 看不到它（M5 记过这个盲区）。
+      # 判据写在 tests/test_release.py，改坏打包器/扫描器必须变红。
+      - name: Release pack (deterministic + readback + body scan)
+        run: python tools/make_release.py --dist dist --out release --check
+
+      # 发布物 sha256 留档与真打的 zip 对账（留档脱节 = 下载复核无从对账）
+      - name: Release ledger matches archives
+        run: python -m pytest tests/test_release.py -q -ra

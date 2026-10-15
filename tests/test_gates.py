@@ -1168,6 +1168,8 @@ def test_dev_extras_cover_test_imports():
         "itertools", "functools", "unittest", "warnings", "copy", "time",
         "__future__", "fnmatch", "glob", "math", "random", "string", "struct",
         "urllib", "contextlib", "abc", "enum", "operator", "traceback",
+        # M6：发布打包/回读保真测试用（ZIP 格式的标准库）——不是安装面依赖
+        "zipfile",
     }
     missing = sorted(
         name for name in third_party

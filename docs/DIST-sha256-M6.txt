@@ -1,0 +1,11 @@
+# 发布物 zip sha256 留档（M6）
+# 生成：py -X utf8 tools/make_release.py --dist dist --out release
+# 版本：0.1.0
+#
+# 确定性口径：ZIP_STORED + 条目字典序 + 固定时间戳 1980-01-01。
+# 两次独立打包的 zip sha256 必须一致（守门见 tests/test_release.py）。
+#
+# 格式：<sha256>  <附件名>  <文件数>
+
+805a5daf0e6b5d965d07c50ed914cf24ce3a310d77b697073de13df33531b0c4  pflc-cli-windows-x64-0.1.0.zip  23
+e0d6149833978ba76c9a823e7af32f987436c0a192f7ca193e484bbeb001ba62  pflc-gui-windows-x64-0.1.0.zip  165

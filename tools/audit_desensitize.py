@@ -199,6 +199,71 @@ def _is_exempt_email(text: str) -> bool:
     return False
 
 
+#: 通用邮箱形态（REVIEW 级）。**单列成常量**：文本扫描与产物本体扫描
+#: 两条通路必须用**同一个**判据源，各写一份必然漂移。
+GENERIC_EMAIL_PATTERN = (
+    r"\b[A-Za-z0-9][A-Za-z0-9._%+-]*@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+\b")
+
+
+# --------------------------------------------------------------------------
+# 判据源（文本通路与产物本体通路共用）
+# --------------------------------------------------------------------------
+
+
+def scan_criteria(tokens: Dict[str, List[str]]) -> List[Tuple[str, str, str]]:
+    """文本扫描判据：``[(category, severity, pattern)]``。
+
+    **唯一口径源**：``_scan_text`` 与产物本体扫描器都从这里取判据。
+    各写一份的失效模式本项目已实测过一次（M1 的原文字面量门禁与 GUI 门禁
+    同一处豁免口径修了一边漏另一边，见 plan/07 K5/M2 决策记录）。
+    """
+    criteria: List[Tuple[str, str, str]] = []
+    for pattern in tokens.get("home_patterns", []):
+        criteria.append(("home_path", HARD, re.escape(pattern)))
+    for name in tokens.get("user_name", []):
+        criteria.append(("user_name_signature", HARD,
+                         r"Users[\\/]" + re.escape(name) + r"(?![A-Za-z0-9])"))
+    for seg in tokens.get("repo_path_segments", []):
+        criteria.append(("repo_path_segment", REVIEW, re.escape(seg)))
+    for email in tokens.get("commit_emails", []):
+        if _is_exempt_email(email):
+            continue
+        criteria.append(("commit_email", HARD, re.escape(email)))
+    # 手机号 / 身份证 / 密钥：hex 边界环视防 sha256 与 Panose 段误报
+    criteria.append(("phone", HARD, r"(?<![0-9a-fA-F])1[3-9]\d{9}(?![0-9a-fA-F])"))
+    criteria.append(("id_card", HARD, r"(?<![0-9a-fA-F])\d{17}[\dXx](?![0-9a-fA-F])"))
+    criteria.append(("api_key", HARD, r"\bsk-[A-Za-z0-9]{16,}"))
+    criteria.append(("long_hex", ADVISORY, r"\b[0-9a-fA-F]{40,}\b"))
+    return criteria
+
+
+def sensitive_literals(tokens: Dict[str, List[str]]) -> List[Tuple[str, str, str, bool]]:
+    """产物本体扫描用的**字面量针**：``[(category, severity, literal, boundary)]``。
+
+    与 ``scan_criteria`` **同源**（都吃 ``compute_tokens()`` 的输出）。产物本体
+    扫描要覆盖二进制（exe / dll / pyd），那里既有 ASCII 字面量也有 UTF-16
+    字面量，正则判据没法可靠地跨编码匹配——字面量则**可以精确编码**
+    （不会像"去掉 NUL 再匹配"那样凭空拼出假阳性）。
+
+    ``boundary=True``：后随字符不得是字母数字，复现 ``user_name_signature``
+    的排除逻辑。**这条不是洁癖**——实测 `ASUSTek COMPUTER INC`（显卡厂商串）
+    会被裸子串判据误报成用户名命中（M6 实测，见 plan/RELEASE-M6.md）。
+    """
+    out: List[Tuple[str, str, str, bool]] = []
+    for pattern in tokens.get("home_patterns", []):
+        out.append(("home_path", HARD, pattern, False))
+    for name in tokens.get("user_name", []):
+        out.append(("user_name_signature", HARD, "Users\\" + name, True))
+        out.append(("user_name_signature", HARD, "Users/" + name, True))
+    for seg in tokens.get("repo_path_segments", []):
+        out.append(("repo_path_segment", REVIEW, seg, False))
+    for email in tokens.get("commit_emails", []):
+        if _is_exempt_email(email):
+            continue
+        out.append(("commit_email", HARD, email, False))
+    return out
+
+
 # --------------------------------------------------------------------------
 # git 通道
 # --------------------------------------------------------------------------
@@ -290,7 +355,10 @@ def commit_messages() -> List[Tuple[str, str]]:
 
 def _scan_text(text: str, tokens: Dict[str, List[str]],
                location: str) -> List[Finding]:
-    """扫一段文本。返回掩码化的命中（不回显原文）。"""
+    """扫一段文本。返回掩码化的命中（不回显原文）。
+
+    判据全部来自 ``scan_criteria()``（与产物本体扫描同一口径源）。
+    """
     findings: List[Finding] = []
     lines = text.splitlines()
 
@@ -308,21 +376,9 @@ def _scan_text(text: str, tokens: Dict[str, List[str]],
         if count:
             findings.append(Finding(category, severity, location, count))
 
-    # 个人路径（HARD）
-    for pattern in tokens.get("home_patterns", []):
-        _hit("home_path", HARD, re.escape(pattern))
-    # 用户名（HARD，短标记做**组合路径签名**匹配，不匹配裸词）
-    for name in tokens.get("user_name", []):
-        _hit("user_name_signature", HARD,
-             r"Users[\\/]" + re.escape(name) + r"(?![A-Za-z0-9])")
-    # 仓库路径段（REVIEW——本机工作根，公开仓不含）
-    for seg in tokens.get("repo_path_segments", []):
-        _hit("repo_path_segment", REVIEW, re.escape(seg))
-    # 提交邮箱（HARD，豁免 noreply 与 git 传输地址）
-    for email in tokens.get("commit_emails", []):
-        if _is_exempt_email(email):
-            continue
-        _hit("commit_email", HARD, re.escape(email))
+    for category, severity, pattern in scan_criteria(tokens):
+        _hit(category, severity, pattern)
+
     # 通用邮箱形态（REVIEW；豁免 noreply 与 example.com 保留域）
     #
     # **豁免必须走同一张表**：M1 收尾给原文快照 `reprint-feedchina.txt` 声明了
@@ -331,8 +387,7 @@ def _scan_text(text: str, tokens: Dict[str, List[str]],
     # 豁免表里写了一条，代码里却没人读它。豁免绑定的是「该文件 + 该规则名」，
     # 该文件的其他规则（如手机号/密钥）仍照常生效。
     if not _is_exempt(location, "generic_email"):
-        generic = re.compile(
-            r"\b[A-Za-z0-9][A-Za-z0-9._%+-]*@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+\b")
+        generic = re.compile(GENERIC_EMAIL_PATTERN)
         count = 0
         for line in lines:
             if ALLOW_MARKER in line:
@@ -346,14 +401,6 @@ def _scan_text(text: str, tokens: Dict[str, List[str]],
                 count += 1
         if count:
             findings.append(Finding("generic_email", REVIEW, location, count))
-    # 手机号（HARD；hex 边界环视防 sha256 误报）
-    _hit("phone", HARD, r"(?<![0-9a-fA-F])1[3-9]\d{9}(?![0-9a-fA-F])")
-    # 身份证（HARD；hex 边界环视防 Panose 误报）
-    _hit("id_card", HARD, r"(?<![0-9a-fA-F])\d{17}[\dXx](?![0-9a-fA-F])")
-    # 密钥形态（HARD）
-    _hit("api_key", HARD, r"\bsk-[A-Za-z0-9]{16,}")
-    # 长 hex 串（advisory 只报不阻断）
-    _hit("long_hex", ADVISORY, r"\b[0-9a-fA-F]{40,}\b")
     return findings
 
 

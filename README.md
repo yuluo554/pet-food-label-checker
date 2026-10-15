@@ -6,9 +6,35 @@
 
 [![ci](https://github.com/yuluo554/pet-food-label-checker/actions/workflows/ci.yml/badge.svg)](https://github.com/yuluo554/pet-food-label-checker/actions/workflows/ci.yml)
 
-> **状态**：✅ **M4 合成标签基准已完成**——判定引擎三模块（标示项 / 营养限值 / 宣称核查）齐备，规则包 **45 条**（`label` 8 / `nutrition` 32 / `claim` 5，其中 **43 条已挂原文核对、2 条 `pending`**）。基准四套件**全部达标**，且期望来源可核证：真值库 `data/benchmark/cases.json`（16 用例）入仓、基准真的读它、`gen_cases.py --check` 位级守门。未挂原文核对的规则不进入判定路径，报告会显式列出。
+> **状态**：✅ **M0–M5 已完成**——判定引擎三模块（标示项 / 营养限值 / 宣称核查）齐备，规则包 **45 条**（`label` 8 / `nutrition` 32 / `claim` 5，其中 **43 条已挂原文核对、2 条 `pending`**）。基准四套件**全部达标**，且期望来源可核证：真值库 `data/benchmark/cases.json`（16 用例）入仓、基准真的读它、`gen_cases.py --check` 位级守门。桌面交付为 **onedir 双 exe**（GUI 111 MB / CLI 17 MB，两树均过冻结态验收）。未挂原文核对的规则不进入判定路径，报告会显式列出。
 >
-> **本地等价校验通过**（Python 3.8 与 3.12 双解释器 **255 项测试** + **六道 OK 标记门**（`TRANSCRIBE_OK` / `FROZEN_RULESET_OK` / `FROZEN_CASES_OK` / `FROZEN_SAMPLES_OK` / `DESSENSITIZE_AUDIT_OK` / `SMOKE_CLI_OK`）+ 基准四套件达标）；**未接远端，CI 待首推验证**——未推送 = 未跑 CI。
+> **本地等价校验通过**（Python 3.8 与 3.12 双解释器 **295 项测试** + **七道 OK 标记门**（`TRANSCRIBE_OK` / `FROZEN_RULESET_OK` / `FROZEN_CASES_OK` / `FROZEN_SAMPLES_OK` / `DESSENSITIZE_AUDIT_OK` / `SMOKE_CLI_OK` / `RELEASE_PACK_OK`）+ 基准四套件达标）；**未接远端，CI 待首推验证**——未推送 = 未跑 CI。
+
+---
+
+## 下载即用（免安装 Python）
+
+不想装 Python 的话，直接下打包好的 exe。**两个包是不同的形态，按需选一个**：
+
+| 下载 | 大小 | 内含 | 适合 |
+|---|---|---|---|
+| [`pflc-gui-windows-x64-0.1.0.zip`](https://github.com/yuluo554/pet-food-label-checker/releases/download/v0.1.0/pflc-gui-windows-x64-0.1.0.zip) | 约 111 MB | 桌面版 `pflc.exe`（内嵌 PySide6） | 想用图形界面填表核验 |
+| [`pflc-cli-windows-x64-0.1.0.zip`](https://github.com/yuluo554/pet-food-label-checker/releases/download/v0.1.0/pflc-cli-windows-x64-0.1.0.zip) | 约 17 MB | 命令行版 `pflc-cli.exe`（**特意不含 Qt**） | 只要命令行 / 脚本化核验 |
+
+两个 `.zip` 的 sha256 见 [`docs/DIST-sha256-M6.txt`](docs/DIST-sha256-M6.txt)（可与 Release 页面对照核验）。
+
+**用法**：解压到任意目录（**别放进本仓库树内**），双击 `pflc.exe` 即开；
+命令行则在该目录下：
+
+```bat
+pflc-cli.exe diagnostics                       :: 看规则与数据状态
+pflc-cli.exe check _internal\data\samples\label-demo-ok.txt
+pflc-cli.exe bench                             :: 跑内置基准四套件
+```
+
+> **为什么 CLI 包不含界面**：它靠 `pflc-cli.exe gui` 走 **exit 3** 并提示改用桌面版来分流。
+> 把 PySide6 塞进 CLI 包会让这句提示变成死代码，还白送约 87 MB —— 故两个包各管一段，
+> 而非"打一个大包全塞进去"。
 
 ---
 
@@ -119,6 +145,18 @@ python tools/verify_frozen.py --dist dist/pflc --selftest            # → VERIF
 ② 内嵌数据与仓库逐份 sha256 对账；③ 白名单外多余数据目录检测；
 ④ 冻结态三连——自检（数据目录落在 exe 内 + 规则数 > 0）、CLI 五连（退出码逐条符合声明）、
 GUI 存活探针（offscreen 真构主窗口，回传页签数）。
+
+**打成发布 zip**（确定性：`ZIP_STORED` + 条目字典序 + 固定时间戳 1980-01-01）：
+
+```bash
+python tools/make_release.py --dist dist --out release --check
+python tools/make_release.py --dist dist --out release --ledger docs/DIST-sha256-M6.txt
+```
+
+`--check` 同时做三件事：① **两次独立打包 sha256 必须一致**（否则"确定性"只是文档里的一句话）；
+② **回读保真**（解出的条目与源树逐字节相同、条目名与时间戳符合声明口径）；
+③ **产物本体脱敏扫描**——`dist/` 在 `.gitignore` 内，`audit_desensitize.py --tracked` **看不到它**，
+故发行包要另立通路扫（按字面量精确编码 ASCII 与 UTF-16 两种形态）。
 
 ### 退出码语义
 
@@ -318,10 +356,11 @@ python tools/audit_desensitize.py --selftest   # 脱敏审计器阳性/阴性对
 python tools/audit_desensitize.py --tracked    # 已跟踪文件脱敏审计（HARD 0 / REVIEW 0）
 python tools/smoke_cli.py               # CLI 端到端（断言退出码契约）
 python tools/check_demo_reproducible.py # 演示物料两次生成 sha256 一致 + 对账留档
+python tools/make_release.py --dist dist --out release --check  # 发布 zip 确定性 + 回读保真 + 产物脱敏
 ```
 
 CI 四矩阵：`windows×{3.8,3.12} + ubuntu×{3.12}`，外加一个 `package` job
-（真构建 onedir 双 exe → 两树冻结态验收 → 演示物料可复现性）。
+（真构建 onedir 双 exe → 两树冻结态验收 → 演示物料可复现性 → 发布 zip 打包与三条判据）。
 
 ---
 

@@ -14,6 +14,7 @@ dist/
 # 运行产物
 output/
 reports/
+release/
 *.log
 .tmp/
 *.bak
