@@ -1,5 +1,158 @@
 {
   "dimension": "label",
-  "rules": [],
+  "rules": [
+    {
+      "anchor": {
+        "captured_at": "2026-10-15",
+        "clause": "第五条",
+        "doc_id": "MOA-20-2018-ANNEX3",
+        "doc_title": "宠物饲料标签规定（农业农村部公告第20号 附件3）",
+        "excerpt": "宠物饲料产品名称应当位于标签的主要展示版面并采用通用名称。",
+        "sha256": "7ee619eef87733fe82ec424d46f881855627ec404002b479ffa237cffae9ecb3",
+        "source_url": "https://faolex.fao.org/docs/pdf/chn176389.pdf"
+      },
+      "clause_status": "verified",
+      "dimension": "label",
+      "effect": "obligation",
+      "kind": "presence",
+      "note": "通用名称为强制标示项；本规定第三条亦将其列入标签应当标示的信息。",
+      "rule_id": "LABEL-001",
+      "status": "verified",
+      "target": "product_name"
+    },
+    {
+      "anchor": {
+        "captured_at": "2026-10-15",
+        "clause": "第六条",
+        "doc_id": "MOA-20-2018-ANNEX3",
+        "doc_title": "宠物饲料标签规定（农业农村部公告第20号 附件3）",
+        "excerpt": "宠物饲料产品标签上应当标示原料组成。",
+        "sha256": "7ee619eef87733fe82ec424d46f881855627ec404002b479ffa237cffae9ecb3",
+        "source_url": "https://faolex.fao.org/docs/pdf/chn176389.pdf"
+      },
+      "clause_status": "verified",
+      "dimension": "label",
+      "effect": "obligation",
+      "kind": "presence",
+      "note": "原料组成为无条件义务；第三条亦将其列入标签应当标示的信息。",
+      "rule_id": "LABEL-002",
+      "status": "verified",
+      "target": "ingredients"
+    },
+    {
+      "anchor": {
+        "captured_at": "2026-10-15",
+        "clause": "第九条",
+        "doc_id": "MOA-20-2018-ANNEX3",
+        "doc_title": "宠物饲料标签规定（农业农村部公告第20号 附件3）",
+        "excerpt": "宠物饲料产品应当标示产品包装单位的净含量。",
+        "sha256": "7ee619eef87733fe82ec424d46f881855627ec404002b479ffa237cffae9ecb3",
+        "source_url": "https://faolex.fao.org/docs/pdf/chn176389.pdf"
+      },
+      "clause_status": "verified",
+      "dimension": "label",
+      "effect": "obligation",
+      "kind": "presence",
+      "note": "净含量为无条件义务；第三条亦将其列入标签应当标示的信息。",
+      "rule_id": "LABEL-003",
+      "status": "verified",
+      "target": "net_content"
+    },
+    {
+      "anchor": {
+        "captured_at": "2026-10-15",
+        "clause": "第十五条",
+        "doc_id": "MOA-20-2018-ANNEX3",
+        "doc_title": "宠物饲料标签规定（农业农村部公告第20号 附件3）",
+        "excerpt": "应当标示与许可证明文件一致的生产许可证编号、企业名称、注册地址、生产地址、联系方式",
+        "sha256": "7ee619eef87733fe82ec424d46f881855627ec404002b479ffa237cffae9ecb3",
+        "source_url": "https://faolex.fao.org/docs/pdf/chn176389.pdf"
+      },
+      "clause_status": "verified",
+      "dimension": "label",
+      "effect": "obligation",
+      "kind": "presence",
+      "note": "生产企业名称及注册/生产地址为无条件义务；第三条亦将其列入标签应当标示的信息。",
+      "rule_id": "LABEL-004",
+      "status": "verified",
+      "target": "producer"
+    },
+    {
+      "anchor": {
+        "captured_at": "2026-10-15",
+        "clause": "第十四条",
+        "doc_id": "MOA-20-2018-ANNEX3",
+        "doc_title": "宠物饲料标签规定（农业农村部公告第20号 附件3）",
+        "excerpt": "宠物饲料产品标签应当标示保质期，标示方法见附录6。",
+        "sha256": "7ee619eef87733fe82ec424d46f881855627ec404002b479ffa237cffae9ecb3",
+        "source_url": "https://faolex.fao.org/docs/pdf/chn176389.pdf"
+      },
+      "clause_status": "verified",
+      "dimension": "label",
+      "effect": "obligation",
+      "kind": "presence",
+      "note": "生产日期（第十三条）与保质期（第十四条）均为无条件义务，档案合并为一项字段。",
+      "rule_id": "LABEL-005",
+      "status": "verified",
+      "target": "product_dates"
+    },
+    {
+      "anchor": {
+        "captured_at": "2026-10-15",
+        "clause": "第六条",
+        "doc_id": "MOA-20-2018-ANNEX3",
+        "doc_title": "宠物饲料标签规定（农业农村部公告第20号 附件3）",
+        "excerpt": "原料组成包括饲料原料和饲料添加剂两部分",
+        "sha256": "7ee619eef87733fe82ec424d46f881855627ec404002b479ffa237cffae9ecb3",
+        "source_url": "https://faolex.fao.org/docs/pdf/chn176389.pdf"
+      },
+      "clause_status": "verified",
+      "dimension": "label",
+      "effect": "conditional",
+      "kind": "presence",
+      "note": "第六条要求原料组成以“原料组成”“添加剂组成”为引导词分两部分；无添加剂产品是否须列空项、原文未明，故只作条件触发（缺失记未观测，不记不符合）。",
+      "rule_id": "LABEL-006",
+      "status": "verified",
+      "target": "additives"
+    },
+    {
+      "anchor": {
+        "captured_at": "2026-10-15",
+        "clause": "第五条",
+        "doc_id": "MOA-20-2018-ANNEX3",
+        "doc_title": "宠物饲料标签规定（农业农村部公告第20号 附件3）",
+        "excerpt": "并标示适用动物种类和生命阶段",
+        "sha256": "7ee619eef87733fe82ec424d46f881855627ec404002b479ffa237cffae9ecb3",
+        "source_url": "https://faolex.fao.org/docs/pdf/chn176389.pdf"
+      },
+      "clause_status": "verified",
+      "dimension": "label",
+      "effect": "conditional",
+      "kind": "presence",
+      "note": "原文同款写明“不标示则默认为适用于所有品种和体型”，即不标示为原文允许的默认情形，故不构成无条件义务。",
+      "rule_id": "LABEL-007",
+      "status": "verified",
+      "target": "category"
+    },
+    {
+      "anchor": {
+        "captured_at": "2026-10-15",
+        "clause": "第五条",
+        "doc_id": "MOA-20-2018-ANNEX3",
+        "doc_title": "宠物饲料标签规定（农业农村部公告第20号 附件3）",
+        "excerpt": "如不标示则默认为适用于所有生命阶段",
+        "sha256": "7ee619eef87733fe82ec424d46f881855627ec404002b479ffa237cffae9ecb3",
+        "source_url": "https://faolex.fao.org/docs/pdf/chn176389.pdf"
+      },
+      "clause_status": "verified",
+      "dimension": "label",
+      "effect": "conditional",
+      "kind": "presence",
+      "note": "原文明确不标示时默认适用所有生命阶段，故不构成无条件义务。",
+      "rule_id": "LABEL-008",
+      "status": "verified",
+      "target": "life_stage"
+    }
+  ],
   "ruleset_version": "2026.1"
 }

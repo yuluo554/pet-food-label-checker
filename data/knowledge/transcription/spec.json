@@ -1,0 +1,589 @@
+{
+  "_note": "转录规格（数据，非代码）：声明哪条规则取哪一处原文。值一律由 tools/transcribe_clauses.py 逐条断言在原文快照里逐字出现后才落库；本文件是**声明**，不是抄进代码的第二份真相。",
+  "claim_spec": [
+    {
+      "clause": "第二十条",
+      "excerpt": "如宠物饲料产品使用的所有饲料原料和饲料添加剂均来自未经加工、非化学工艺加工",
+      "note": "特性声称“天然的/天然粮”的前提是全部原料与添加剂来源受限定，且如添加化学合成维生素/氨基酸/矿物质须同时标示；核查其支撑信息是否齐备。",
+      "required_support": [
+        "ingredients",
+        "additives"
+      ],
+      "rule_id": "CLAIM-001",
+      "target": "天然"
+    },
+    {
+      "clause": "第二十条",
+      "excerpt": "声称应当使用“无XX”或者“不含XX”",
+      "note": "不含有声称须在原料组成中可核；除饲料原料与饲料添加剂外不得对物质作不含有声称。",
+      "required_support": [
+        "ingredients"
+      ],
+      "rule_id": "CLAIM-002",
+      "target": "无谷"
+    },
+    {
+      "clause": "第二十条",
+      "excerpt": "除饲料原料和饲料添加剂外，不得对其他任何物质进行不含有声称。",
+      "note": "“无添加”属不含有声称，须以原料组成与添加剂组成的标示为支撑。",
+      "required_support": [
+        "ingredients",
+        "additives"
+      ],
+      "rule_id": "CLAIM-003",
+      "target": "无添加"
+    },
+    {
+      "clause": "第二十条",
+      "excerpt": "如宠物饲料产品中添加的维生素、氨基酸、矿物质微量元素是化学合成的",
+      "note": "“纯天然”与“天然的”同属特性声称；添加化学合成营养素时须同时标示。",
+      "required_support": [
+        "ingredients",
+        "additives"
+      ],
+      "rule_id": "CLAIM-004",
+      "target": "纯天然"
+    },
+    {
+      "clause": "第二十条",
+      "excerpt": "且不含有氯化钠、防腐剂或者其他饲料添加剂",
+      "note": "特性声称“新鲜的/鲜”以原料未作蒸煮干燥冷冻水解等处理且不含氯化钠、防腐剂或其他饲料添加剂为前提，核查支撑信息是否齐备。",
+      "required_support": [
+        "ingredients",
+        "additives"
+      ],
+      "rule_id": "CLAIM-005",
+      "target": "鲜肉"
+    }
+  ],
+  "label_spec": [
+    {
+      "clause": "第五条",
+      "effect": "obligation",
+      "excerpt": "宠物饲料产品名称应当位于标签的主要展示版面并采用通用名称。",
+      "note": "通用名称为强制标示项；本规定第三条亦将其列入标签应当标示的信息。",
+      "rule_id": "LABEL-001",
+      "target": "product_name"
+    },
+    {
+      "clause": "第六条",
+      "effect": "obligation",
+      "excerpt": "宠物饲料产品标签上应当标示原料组成。",
+      "note": "原料组成为无条件义务；第三条亦将其列入标签应当标示的信息。",
+      "rule_id": "LABEL-002",
+      "target": "ingredients"
+    },
+    {
+      "clause": "第九条",
+      "effect": "obligation",
+      "excerpt": "宠物饲料产品应当标示产品包装单位的净含量。",
+      "note": "净含量为无条件义务；第三条亦将其列入标签应当标示的信息。",
+      "rule_id": "LABEL-003",
+      "target": "net_content"
+    },
+    {
+      "clause": "第十五条",
+      "effect": "obligation",
+      "excerpt": "应当标示与许可证明文件一致的生产许可证编号、企业名称、注册地址、生产地址、联系方式",
+      "note": "生产企业名称及注册/生产地址为无条件义务；第三条亦将其列入标签应当标示的信息。",
+      "rule_id": "LABEL-004",
+      "target": "producer"
+    },
+    {
+      "clause": "第十四条",
+      "effect": "obligation",
+      "excerpt": "宠物饲料产品标签应当标示保质期，标示方法见附录6。",
+      "note": "生产日期（第十三条）与保质期（第十四条）均为无条件义务，档案合并为一项字段。",
+      "rule_id": "LABEL-005",
+      "target": "product_dates"
+    },
+    {
+      "clause": "第六条",
+      "effect": "conditional",
+      "excerpt": "原料组成包括饲料原料和饲料添加剂两部分",
+      "note": "第六条要求原料组成以“原料组成”“添加剂组成”为引导词分两部分；无添加剂产品是否须列空项、原文未明，故只作条件触发（缺失记未观测，不记不符合）。",
+      "rule_id": "LABEL-006",
+      "target": "additives"
+    },
+    {
+      "clause": "第五条",
+      "effect": "conditional",
+      "excerpt": "并标示适用动物种类和生命阶段",
+      "note": "原文同款写明“不标示则默认为适用于所有品种和体型”，即不标示为原文允许的默认情形，故不构成无条件义务。",
+      "rule_id": "LABEL-007",
+      "target": "category"
+    },
+    {
+      "clause": "第五条",
+      "effect": "conditional",
+      "excerpt": "如不标示则默认为适用于所有生命阶段",
+      "note": "原文明确不标示时默认适用所有生命阶段，故不构成无条件义务。",
+      "rule_id": "LABEL-008",
+      "target": "life_stage"
+    }
+  ],
+  "nutrition_spec": [
+    {
+      "clause": "表2",
+      "method": "6432",
+      "note": "幼(年)犬粮、妊娠期犬粮、哺乳期犬粮一列。",
+      "op": ">=",
+      "row": 2,
+      "rule_id": "NUT-DOG-001",
+      "stages": [
+        "幼年",
+        "妊娠哺乳期"
+      ],
+      "target": "粗蛋白",
+      "unit": "%",
+      "value": "22.0"
+    },
+    {
+      "clause": "表2",
+      "method": "6432",
+      "note": "成(年)犬粮一列。",
+      "op": ">=",
+      "row": 2,
+      "rule_id": "NUT-DOG-002",
+      "stages": [
+        "成年"
+      ],
+      "target": "粗蛋白",
+      "unit": "%",
+      "value": "18.0"
+    },
+    {
+      "clause": "表2",
+      "method": "6433",
+      "note": "幼(年)犬粮、妊娠期犬粮、哺乳期犬粮一列。",
+      "op": ">=",
+      "row": 3,
+      "rule_id": "NUT-DOG-003",
+      "stages": [
+        "幼年",
+        "妊娠哺乳期"
+      ],
+      "target": "粗脂肪",
+      "unit": "%",
+      "value": "8.0"
+    },
+    {
+      "clause": "表2",
+      "method": "6433",
+      "note": "成(年)犬粮一列。",
+      "op": ">=",
+      "row": 3,
+      "rule_id": "NUT-DOG-004",
+      "stages": [
+        "成年"
+      ],
+      "target": "粗脂肪",
+      "unit": "%",
+      "value": "5.0"
+    },
+    {
+      "clause": "表2",
+      "method": "6438",
+      "note": "",
+      "op": "<=",
+      "row": 4,
+      "rule_id": "NUT-DOG-005",
+      "stages": [
+        "幼年",
+        "妊娠哺乳期"
+      ],
+      "target": "粗灰分",
+      "unit": "%",
+      "value": "10.0"
+    },
+    {
+      "clause": "表2",
+      "method": "6438",
+      "note": "",
+      "op": "<=",
+      "row": 4,
+      "rule_id": "NUT-DOG-006",
+      "stages": [
+        "成年"
+      ],
+      "target": "粗灰分",
+      "unit": "%",
+      "value": "10.0"
+    },
+    {
+      "clause": "表2",
+      "method": "6434",
+      "note": "",
+      "op": "<=",
+      "row": 5,
+      "rule_id": "NUT-DOG-007",
+      "stages": [
+        "幼年",
+        "妊娠哺乳期"
+      ],
+      "target": "粗纤维",
+      "unit": "%",
+      "value": "9.0"
+    },
+    {
+      "clause": "表2",
+      "method": "6434",
+      "note": "",
+      "op": "<=",
+      "row": 5,
+      "rule_id": "NUT-DOG-008",
+      "stages": [
+        "成年"
+      ],
+      "target": "粗纤维",
+      "unit": "%",
+      "value": "9.0"
+    },
+    {
+      "clause": "表2",
+      "method": "6436",
+      "note": "",
+      "op": ">=",
+      "row": 6,
+      "rule_id": "NUT-DOG-009",
+      "stages": [
+        "幼年",
+        "妊娠哺乳期"
+      ],
+      "target": "钙",
+      "unit": "%",
+      "value": "1.0"
+    },
+    {
+      "clause": "表2",
+      "method": "6436",
+      "note": "",
+      "op": ">=",
+      "row": 6,
+      "rule_id": "NUT-DOG-010",
+      "stages": [
+        "成年"
+      ],
+      "target": "钙",
+      "unit": "%",
+      "value": "0.6"
+    },
+    {
+      "clause": "表2",
+      "method": "6437",
+      "note": "",
+      "op": ">=",
+      "row": 7,
+      "rule_id": "NUT-DOG-011",
+      "stages": [
+        "幼年",
+        "妊娠哺乳期"
+      ],
+      "target": "总磷",
+      "unit": "%",
+      "value": "0.8"
+    },
+    {
+      "clause": "表2",
+      "method": "6437",
+      "note": "",
+      "op": ">=",
+      "row": 7,
+      "rule_id": "NUT-DOG-012",
+      "stages": [
+        "成年"
+      ],
+      "target": "总磷",
+      "unit": "%",
+      "value": "0.5"
+    },
+    {
+      "clause": "表2",
+      "method": "6439",
+      "note": "原文以 Cl- 计。",
+      "op": ">=",
+      "row": 8,
+      "rule_id": "NUT-DOG-013",
+      "stages": [
+        "幼年",
+        "妊娠哺乳期"
+      ],
+      "target": "水溶性氯化物",
+      "unit": "%",
+      "value": "0.45"
+    },
+    {
+      "clause": "表2",
+      "method": "6439",
+      "note": "原文以 Cl- 计。",
+      "op": ">=",
+      "row": 8,
+      "rule_id": "NUT-DOG-014",
+      "stages": [
+        "成年"
+      ],
+      "target": "水溶性氯化物",
+      "unit": "%",
+      "value": "0.09"
+    },
+    {
+      "clause": "表2",
+      "method": "18246",
+      "note": "原文限定：适用于犬粮。",
+      "op": ">=",
+      "row": 9,
+      "rule_id": "NUT-DOG-015",
+      "stages": [
+        "幼年",
+        "妊娠哺乳期"
+      ],
+      "target": "赖氨酸",
+      "unit": "%",
+      "value": "0.77"
+    },
+    {
+      "clause": "表2",
+      "method": "18246",
+      "note": "原文限定：适用于犬粮。",
+      "op": ">=",
+      "row": 9,
+      "rule_id": "NUT-DOG-016",
+      "stages": [
+        "成年"
+      ],
+      "target": "赖氨酸",
+      "unit": "%",
+      "value": "0.63"
+    },
+    {
+      "clause": "表1",
+      "method": "6432",
+      "note": "幼(年)猫粮、妊娠期猫粮、哺乳期猫粮一列。",
+      "op": ">=",
+      "row": 2,
+      "rule_id": "NUT-CAT-001",
+      "stages": [
+        "幼年",
+        "妊娠哺乳期"
+      ],
+      "target": "粗蛋白",
+      "unit": "%",
+      "value": "28.0"
+    },
+    {
+      "clause": "表1",
+      "method": "6432",
+      "note": "成(年)猫粮一列。",
+      "op": ">=",
+      "row": 2,
+      "rule_id": "NUT-CAT-002",
+      "stages": [
+        "成年"
+      ],
+      "target": "粗蛋白",
+      "unit": "%",
+      "value": "25.0"
+    },
+    {
+      "clause": "表1",
+      "method": "6433",
+      "note": "",
+      "op": ">=",
+      "row": 3,
+      "rule_id": "NUT-CAT-003",
+      "stages": [
+        "幼年",
+        "妊娠哺乳期"
+      ],
+      "target": "粗脂肪",
+      "unit": "%",
+      "value": "9.0"
+    },
+    {
+      "clause": "表1",
+      "method": "6433",
+      "note": "",
+      "op": ">=",
+      "row": 3,
+      "rule_id": "NUT-CAT-004",
+      "stages": [
+        "成年"
+      ],
+      "target": "粗脂肪",
+      "unit": "%",
+      "value": "9.0"
+    },
+    {
+      "clause": "表1",
+      "method": "6438",
+      "note": "",
+      "op": "<=",
+      "row": 4,
+      "rule_id": "NUT-CAT-005",
+      "stages": [
+        "幼年",
+        "妊娠哺乳期"
+      ],
+      "target": "粗灰分",
+      "unit": "%",
+      "value": "10.0"
+    },
+    {
+      "clause": "表1",
+      "method": "6438",
+      "note": "",
+      "op": "<=",
+      "row": 4,
+      "rule_id": "NUT-CAT-006",
+      "stages": [
+        "成年"
+      ],
+      "target": "粗灰分",
+      "unit": "%",
+      "value": "10.0"
+    },
+    {
+      "clause": "表1",
+      "method": "6434",
+      "note": "",
+      "op": "<=",
+      "row": 5,
+      "rule_id": "NUT-CAT-007",
+      "stages": [
+        "幼年",
+        "妊娠哺乳期"
+      ],
+      "target": "粗纤维",
+      "unit": "%",
+      "value": "9.0"
+    },
+    {
+      "clause": "表1",
+      "method": "6434",
+      "note": "",
+      "op": "<=",
+      "row": 5,
+      "rule_id": "NUT-CAT-008",
+      "stages": [
+        "成年"
+      ],
+      "target": "粗纤维",
+      "unit": "%",
+      "value": "9.0"
+    },
+    {
+      "clause": "表1",
+      "method": "6436",
+      "note": "",
+      "op": ">=",
+      "row": 6,
+      "rule_id": "NUT-CAT-009",
+      "stages": [
+        "幼年",
+        "妊娠哺乳期"
+      ],
+      "target": "钙",
+      "unit": "%",
+      "value": "1.0"
+    },
+    {
+      "clause": "表1",
+      "method": "6436",
+      "note": "",
+      "op": ">=",
+      "row": 6,
+      "rule_id": "NUT-CAT-010",
+      "stages": [
+        "成年"
+      ],
+      "target": "钙",
+      "unit": "%",
+      "value": "0.6"
+    },
+    {
+      "clause": "表1",
+      "method": "6437",
+      "note": "",
+      "op": ">=",
+      "row": 7,
+      "rule_id": "NUT-CAT-011",
+      "stages": [
+        "幼年",
+        "妊娠哺乳期"
+      ],
+      "target": "总磷",
+      "unit": "%",
+      "value": "0.8"
+    },
+    {
+      "clause": "表1",
+      "method": "6437",
+      "note": "",
+      "op": ">=",
+      "row": 7,
+      "rule_id": "NUT-CAT-012",
+      "stages": [
+        "成年"
+      ],
+      "target": "总磷",
+      "unit": "%",
+      "value": "0.5"
+    },
+    {
+      "clause": "表1",
+      "method": "6439",
+      "note": "原文以 Cl- 计。",
+      "op": ">=",
+      "row": 8,
+      "rule_id": "NUT-CAT-013",
+      "stages": [
+        "幼年",
+        "妊娠哺乳期"
+      ],
+      "target": "水溶性氯化物",
+      "unit": "%",
+      "value": "0.3"
+    },
+    {
+      "clause": "表1",
+      "method": "6439",
+      "note": "原文以 Cl- 计。",
+      "op": ">=",
+      "row": 8,
+      "rule_id": "NUT-CAT-014",
+      "stages": [
+        "成年"
+      ],
+      "target": "水溶性氯化物",
+      "unit": "%",
+      "value": "0.3"
+    }
+  ],
+  "pending_spec": [
+    {
+      "clause": "表1",
+      "method": "18246",
+      "note": "原文该行按水分形态分支：干粮 ≥0.1、湿粮 ≥0.2。当前 applies_if 只支持类别/生命阶段，无法表达水分形态门控；只按 ≥0.1 判会对湿粮产生假合规，按 ≥0.2 判会对干粮产生假违规——两种都是编造结论，故不进入判定路径。",
+      "op": ">=",
+      "row": 9,
+      "rule_id": "NUT-CAT-015",
+      "stages": [
+        "幼年",
+        "妊娠哺乳期"
+      ],
+      "target": "牛磺酸"
+    },
+    {
+      "clause": "表1",
+      "method": "18246",
+      "note": "同 NUT-CAT-015：限值随水分形态（干粮 ≥0.1／湿粮 ≥0.2）分支，当前门控键无法表达。",
+      "op": ">=",
+      "row": 9,
+      "rule_id": "NUT-CAT-016",
+      "stages": [
+        "成年"
+      ],
+      "target": "牛磺酸"
+    }
+  ]
+}

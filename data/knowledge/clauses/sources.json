@@ -1,54 +1,99 @@
 {
-  "_note": "参数来源登记：每条依据的发布机关/文号/URL/抓取日期/快照 sha256。规则条目的锚点从此处补全来源信息（见 tools/gen_rulesets.py）。",
-  "_discipline": "无出处的值不得以确定语气落库或写进结论；未核对不得生效。",
-  "MOA-20-2018": {
-    "doc_id": "MOA-20-2018",
-    "doc_title": "农业农村部公告第20号（加强宠物饲料管理）",
-    "issuer": "农业农村部",
-    "doc_no": "农业农村部公告第20号",
-    "url": "https://law.foodmate.net/show-194580.html",
-    "captured_at": "2026-10-15",
-    "sha256": "",
-    "note": "权威转载源（非官方源）；官方 moa.gov.cn 候选 URL 实测 404，待补核。含 6 件规范性文件目录。"
-  },
-  "MOA-20-2018-ANNEX3": {
-    "doc_id": "MOA-20-2018-ANNEX3",
-    "doc_title": "宠物饲料标签规定（农业农村部公告第20号 附件3）",
-    "issuer": "农业农村部",
-    "doc_no": "农业农村部公告第20号 附件3",
-    "url": "https://law.foodmate.net/show-194580.html",
-    "captured_at": "2026-10-15",
-    "sha256": "",
-    "note": "M1 待办：全文需从公告附件获取。20号公告附件包 PDF（file2.foodmate.net/law/hll201902121526.pdf，25,331,751 字节，95 页）经 pdftotext 提取汉字数 0、pdffonts 无字体、pdfimages 无位图 —— 系 Foxit 打印驱动输出的字形转曲线文档，无文本层，不可直接提取。M1 需另寻渠道（HTML 转载页 / 其他权威转载 / 官方源补核）。"
-  },
-  "MOA-210-2019": {
-    "doc_id": "MOA-210-2019",
-    "doc_title": "农业农村部公告第210号（延长宠物饲料标签过渡期）",
-    "issuer": "农业农村部",
-    "doc_no": "农业农村部公告第210号",
-    "url": "https://law.foodmate.net/show-197783.html",
-    "captured_at": "2026-10-15",
-    "sha256": "",
-    "note": "权威转载源实测可读（38,610 字节）。标签强制标示自 2020-03-01 全量执行。"
-  },
   "GB-T-31216-2014": {
+    "captured_at": "2026-10-15",
     "doc_id": "GB-T-31216-2014",
+    "doc_no": "GB/T 31216—2014",
     "doc_title": "全价宠物食品 犬粮",
     "issuer": "国家质量监督检验检疫总局 / 国家标准化管理委员会",
-    "doc_no": "GB/T 31216—2014",
-    "url": "https://std.samr.gov.cn/",
-    "captured_at": "2026-10-15",
-    "sha256": "",
-    "note": "检索页实测：现行、无版本迭代。全文预览需浏览器会话，机器直连不可得 —— M1 经浏览器录入数值表，逐条挂条款核对后转 verified。未录入前该维度全部 pending，绝不编造数值。"
+    "note": "国家标准全文公开系统在线预览；数值表 PDF/文本层不可得，经瓦片精灵图旁路取页图 + 逐格 OCR 转写，页图与 OCR 结果同时入仓。",
+    "sha256": "b5bc0c7deae073e8ab492795e8d78a455eebebff3fe9285699c7138aebf3fcd3",
+    "snapshot_file": "data/knowledge/raw/gb-t-31216-2014/page-04.png",
+    "snapshot_sha256": [
+      {
+        "file": "data/knowledge/raw/gb-t-31216-2014/page-04.png",
+        "sha256": "b5bc0c7deae073e8ab492795e8d78a455eebebff3fe9285699c7138aebf3fcd3"
+      },
+      {
+        "file": "data/knowledge/raw/gb-t-31216-2014/table-2-理化指标.tsv",
+        "sha256": "775cad199b831e29579e5726543d1c9dd2b07e36979f286047b6285b643268e0"
+      },
+      {
+        "file": "data/knowledge/raw/gb-t-31216-2014/viewer.html",
+        "sha256": "a7865013b9c8d53bd6867439f855ca308907cf314c310d34c69bd9bd05fd7d36"
+      }
+    ],
+    "url": "https://openstd.samr.gov.cn/bzgk/gb/newGbInfo?hcno=A8758F9C4633B2CCBEE9C82CC3F4A4D1"
   },
   "GB-T-31217-2014": {
+    "captured_at": "2026-10-15",
     "doc_id": "GB-T-31217-2014",
+    "doc_no": "GB/T 31217—2014",
     "doc_title": "全价宠物食品 猫粮",
     "issuer": "国家质量监督检验检疫总局 / 国家标准化管理委员会",
-    "doc_no": "GB/T 31217—2014",
-    "url": "https://std.samr.gov.cn/",
+    "note": "同 GB/T 31216—2014：瓦片精灵图旁路 + 逐格 OCR，页图与 OCR 结果入仓。",
+    "sha256": "6e98950fa294790d7d02b04dc4b70b589b2147696ecaac1c40adf6bca71628b5",
+    "snapshot_file": "data/knowledge/raw/gb-t-31217-2014/page-04.png",
+    "snapshot_sha256": [
+      {
+        "file": "data/knowledge/raw/gb-t-31217-2014/page-04.png",
+        "sha256": "6e98950fa294790d7d02b04dc4b70b589b2147696ecaac1c40adf6bca71628b5"
+      },
+      {
+        "file": "data/knowledge/raw/gb-t-31217-2014/table-1-理化指标.tsv",
+        "sha256": "0f62c1235b406570b5401dedf49da3c1d31700f3cdacd71ea5e0a8de5714b44f"
+      },
+      {
+        "file": "data/knowledge/raw/gb-t-31217-2014/viewer.html",
+        "sha256": "57375a36b5c6bb33743806a3205fb9e7c220510933bdb3e0aff92952caa3a3eb"
+      }
+    ],
+    "url": "https://openstd.samr.gov.cn/bzgk/gb/newGbInfo?hcno=9496ABE283E8EB1FF58DF961B2DBAC9B"
+  },
+  "MOA-20-2018": {
     "captured_at": "2026-10-15",
+    "doc_id": "MOA-20-2018",
+    "doc_no": "农业农村部公告第20号",
+    "doc_title": "农业农村部公告第20号（加强宠物饲料管理）",
+    "issuer": "农业农村部",
+    "note": "权威转载源；官方 moa.gov.cn 候选 URL 实测 404，如实标注。",
     "sha256": "",
-    "note": "同 GB/T 31216—2014：检索页现行无迭代；全文待 M1 浏览器录入。"
-  }
+    "url": "https://law.foodmate.net/show-194580.html"
+  },
+  "MOA-20-2018-ANNEX3": {
+    "captured_at": "2026-10-15",
+    "doc_id": "MOA-20-2018-ANNEX3",
+    "doc_no": "农业农村部公告第20号 附件3",
+    "doc_title": "宠物饲料标签规定（农业农村部公告第20号 附件3）",
+    "issuer": "农业农村部",
+    "note": "FAO FAOLEX 库托管的公告附件扫描件（26 条 + 附录 1–9），另以 feed-china 网站转载正文交叉校验条款编号序列一致；转载源非官方源，如实标注。",
+    "sha256": "9a2a57a51b4e5a7a4a83cab109dd12b4d4ecc4d12a57c1dcf3738bab5b0a83ea",
+    "snapshot_file": "data/knowledge/raw/moa-20-2018-annex3/fao-chn176389.pdf",
+    "snapshot_sha256": [
+      {
+        "file": "data/knowledge/raw/moa-20-2018-annex3/fao-chn176389.pdf",
+        "sha256": "9a2a57a51b4e5a7a4a83cab109dd12b4d4ecc4d12a57c1dcf3738bab5b0a83ea"
+      },
+      {
+        "file": "data/knowledge/raw/moa-20-2018-annex3/reprint-feedchina.txt",
+        "sha256": "7ee619eef87733fe82ec424d46f881855627ec404002b479ffa237cffae9ecb3"
+      },
+      {
+        "file": "data/knowledge/raw/moa-20-2018-annex3/fao-chn176389.pdftotext.txt",
+        "sha256": "e1940a682a9394f360d03e6eaf989d6e769e21c4445782914331c8c3656ecb97"
+      }
+    ],
+    "url": "https://faolex.fao.org/docs/pdf/chn176389.pdf"
+  },
+  "MOA-210-2019": {
+    "captured_at": "2026-10-15",
+    "doc_id": "MOA-210-2019",
+    "doc_no": "农业农村部公告第210号",
+    "doc_title": "农业农村部公告第210号（延长宠物饲料标签过渡期）",
+    "issuer": "农业农村部",
+    "note": "权威转载源实测可读；标签强制标示自 2020-03-01 全量执行。",
+    "sha256": "",
+    "url": "https://law.foodmate.net/show-197783.html"
+  },
+  "_discipline": "无出处的值不得以确定语气落库或写进结论；未核对不得生效。",
+  "_note": "参数来源登记：每条依据的发布机关/文号/URL/抓取日期/快照 sha256。sha256 由 tools/transcribe_clauses.py 从 raw/ 快照实算，禁手填。"
 }

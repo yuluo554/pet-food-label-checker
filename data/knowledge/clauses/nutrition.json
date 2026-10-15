@@ -1,1 +1,1047 @@
-{"rules": []}
+{
+  "_dimension": "nutrition",
+  "_scope_note": "“全阶段”不在标准任一列的生命阶段分支内：原文按具体生命阶段（幼年/妊娠期/哺乳期、成年）给限值，未给“全阶段”行。拿最严一档去套“全阶段”属无出处的推断，故未建规则。 水分表（犬 表3／猫 表2）按干(性)/半湿(性)/湿(性)给区间且三区间完整覆盖全轴，不存在可判定的越界取值，故不建规则。",
+  "_source": "GB/T 31216—2014 表2 / GB/T 31217—2014 表1（以干物质计 / %）",
+  "rules": [
+    {
+      "anchor": {
+        "basis": "dry_matter",
+        "clause": "表2",
+        "doc_id": "GB-T-31216-2014",
+        "doc_title": "全价宠物食品 犬粮",
+        "excerpt": "粘蛋口质之22.0之18.0GB/TT6432",
+        "sha256": "b5bc0c7deae073e8ab492795e8d78a455eebebff3fe9285699c7138aebf3fcd3",
+        "table_row": 2,
+        "test_method": "GB/T 6432"
+      },
+      "applies_if": {
+        "category": [
+          "犬粮"
+        ],
+        "life_stage": [
+          "幼年",
+          "妊娠哺乳期"
+        ]
+      },
+      "basis": "dry_matter",
+      "clause_status": "verified",
+      "dimension": "nutrition",
+      "effect": "obligation",
+      "kind": "threshold",
+      "note": "幼(年)犬粮、妊娠期犬粮、哺乳期犬粮一列。",
+      "op": ">=",
+      "rule_id": "NUT-DOG-001",
+      "status": "verified",
+      "target": "粗蛋白",
+      "unit": "%",
+      "value": "22.0"
+    },
+    {
+      "anchor": {
+        "basis": "dry_matter",
+        "clause": "表2",
+        "doc_id": "GB-T-31216-2014",
+        "doc_title": "全价宠物食品 犬粮",
+        "excerpt": "粘蛋口质之22.0之18.0GB/TT6432",
+        "sha256": "b5bc0c7deae073e8ab492795e8d78a455eebebff3fe9285699c7138aebf3fcd3",
+        "table_row": 2,
+        "test_method": "GB/T 6432"
+      },
+      "applies_if": {
+        "category": [
+          "犬粮"
+        ],
+        "life_stage": [
+          "成年"
+        ]
+      },
+      "basis": "dry_matter",
+      "clause_status": "verified",
+      "dimension": "nutrition",
+      "effect": "obligation",
+      "kind": "threshold",
+      "note": "成(年)犬粮一列。",
+      "op": ">=",
+      "rule_id": "NUT-DOG-002",
+      "status": "verified",
+      "target": "粗蛋白",
+      "unit": "%",
+      "value": "18.0"
+    },
+    {
+      "anchor": {
+        "basis": "dry_matter",
+        "clause": "表2",
+        "doc_id": "GB-T-31216-2014",
+        "doc_title": "全价宠物食品 犬粮",
+        "excerpt": "粗脂肪之8.0芒5.0GB/TT6433",
+        "sha256": "b5bc0c7deae073e8ab492795e8d78a455eebebff3fe9285699c7138aebf3fcd3",
+        "table_row": 3,
+        "test_method": "GB/T 6433"
+      },
+      "applies_if": {
+        "category": [
+          "犬粮"
+        ],
+        "life_stage": [
+          "幼年",
+          "妊娠哺乳期"
+        ]
+      },
+      "basis": "dry_matter",
+      "clause_status": "verified",
+      "dimension": "nutrition",
+      "effect": "obligation",
+      "kind": "threshold",
+      "note": "幼(年)犬粮、妊娠期犬粮、哺乳期犬粮一列。",
+      "op": ">=",
+      "rule_id": "NUT-DOG-003",
+      "status": "verified",
+      "target": "粗脂肪",
+      "unit": "%",
+      "value": "8.0"
+    },
+    {
+      "anchor": {
+        "basis": "dry_matter",
+        "clause": "表2",
+        "doc_id": "GB-T-31216-2014",
+        "doc_title": "全价宠物食品 犬粮",
+        "excerpt": "粗脂肪之8.0芒5.0GB/TT6433",
+        "sha256": "b5bc0c7deae073e8ab492795e8d78a455eebebff3fe9285699c7138aebf3fcd3",
+        "table_row": 3,
+        "test_method": "GB/T 6433"
+      },
+      "applies_if": {
+        "category": [
+          "犬粮"
+        ],
+        "life_stage": [
+          "成年"
+        ]
+      },
+      "basis": "dry_matter",
+      "clause_status": "verified",
+      "dimension": "nutrition",
+      "effect": "obligation",
+      "kind": "threshold",
+      "note": "成(年)犬粮一列。",
+      "op": ">=",
+      "rule_id": "NUT-DOG-004",
+      "status": "verified",
+      "target": "粗脂肪",
+      "unit": "%",
+      "value": "5.0"
+    },
+    {
+      "anchor": {
+        "basis": "dry_matter",
+        "clause": "表2",
+        "doc_id": "GB-T-31216-2014",
+        "doc_title": "全价宠物食品 犬粮",
+        "excerpt": "粗灰分如10.0如10.0GB/T6438",
+        "sha256": "b5bc0c7deae073e8ab492795e8d78a455eebebff3fe9285699c7138aebf3fcd3",
+        "table_row": 4,
+        "test_method": "GB/T 6438"
+      },
+      "applies_if": {
+        "category": [
+          "犬粮"
+        ],
+        "life_stage": [
+          "幼年",
+          "妊娠哺乳期"
+        ]
+      },
+      "basis": "dry_matter",
+      "clause_status": "verified",
+      "dimension": "nutrition",
+      "effect": "obligation",
+      "kind": "threshold",
+      "note": "",
+      "op": "<=",
+      "rule_id": "NUT-DOG-005",
+      "status": "verified",
+      "target": "粗灰分",
+      "unit": "%",
+      "value": "10.0"
+    },
+    {
+      "anchor": {
+        "basis": "dry_matter",
+        "clause": "表2",
+        "doc_id": "GB-T-31216-2014",
+        "doc_title": "全价宠物食品 犬粮",
+        "excerpt": "粗灰分如10.0如10.0GB/T6438",
+        "sha256": "b5bc0c7deae073e8ab492795e8d78a455eebebff3fe9285699c7138aebf3fcd3",
+        "table_row": 4,
+        "test_method": "GB/T 6438"
+      },
+      "applies_if": {
+        "category": [
+          "犬粮"
+        ],
+        "life_stage": [
+          "成年"
+        ]
+      },
+      "basis": "dry_matter",
+      "clause_status": "verified",
+      "dimension": "nutrition",
+      "effect": "obligation",
+      "kind": "threshold",
+      "note": "",
+      "op": "<=",
+      "rule_id": "NUT-DOG-006",
+      "status": "verified",
+      "target": "粗灰分",
+      "unit": "%",
+      "value": "10.0"
+    },
+    {
+      "anchor": {
+        "basis": "dry_matter",
+        "clause": "表2",
+        "doc_id": "GB-T-31216-2014",
+        "doc_title": "全价宠物食品 犬粮",
+        "excerpt": "粗纤维妙9.0女9.0GB/T6434",
+        "sha256": "b5bc0c7deae073e8ab492795e8d78a455eebebff3fe9285699c7138aebf3fcd3",
+        "table_row": 5,
+        "test_method": "GB/T 6434"
+      },
+      "applies_if": {
+        "category": [
+          "犬粮"
+        ],
+        "life_stage": [
+          "幼年",
+          "妊娠哺乳期"
+        ]
+      },
+      "basis": "dry_matter",
+      "clause_status": "verified",
+      "dimension": "nutrition",
+      "effect": "obligation",
+      "kind": "threshold",
+      "note": "",
+      "op": "<=",
+      "rule_id": "NUT-DOG-007",
+      "status": "verified",
+      "target": "粗纤维",
+      "unit": "%",
+      "value": "9.0"
+    },
+    {
+      "anchor": {
+        "basis": "dry_matter",
+        "clause": "表2",
+        "doc_id": "GB-T-31216-2014",
+        "doc_title": "全价宠物食品 犬粮",
+        "excerpt": "粗纤维妙9.0女9.0GB/T6434",
+        "sha256": "b5bc0c7deae073e8ab492795e8d78a455eebebff3fe9285699c7138aebf3fcd3",
+        "table_row": 5,
+        "test_method": "GB/T 6434"
+      },
+      "applies_if": {
+        "category": [
+          "犬粮"
+        ],
+        "life_stage": [
+          "成年"
+        ]
+      },
+      "basis": "dry_matter",
+      "clause_status": "verified",
+      "dimension": "nutrition",
+      "effect": "obligation",
+      "kind": "threshold",
+      "note": "",
+      "op": "<=",
+      "rule_id": "NUT-DOG-008",
+      "status": "verified",
+      "target": "粗纤维",
+      "unit": "%",
+      "value": "9.0"
+    },
+    {
+      "anchor": {
+        "basis": "dry_matter",
+        "clause": "表2",
+        "doc_id": "GB-T-31216-2014",
+        "doc_title": "全价宠物食品 犬粮",
+        "excerpt": "钨之1.0之0.6GPR/TT6436",
+        "sha256": "b5bc0c7deae073e8ab492795e8d78a455eebebff3fe9285699c7138aebf3fcd3",
+        "table_row": 6,
+        "test_method": "GB/T 6436"
+      },
+      "applies_if": {
+        "category": [
+          "犬粮"
+        ],
+        "life_stage": [
+          "幼年",
+          "妊娠哺乳期"
+        ]
+      },
+      "basis": "dry_matter",
+      "clause_status": "verified",
+      "dimension": "nutrition",
+      "effect": "obligation",
+      "kind": "threshold",
+      "note": "",
+      "op": ">=",
+      "rule_id": "NUT-DOG-009",
+      "status": "verified",
+      "target": "钙",
+      "unit": "%",
+      "value": "1.0"
+    },
+    {
+      "anchor": {
+        "basis": "dry_matter",
+        "clause": "表2",
+        "doc_id": "GB-T-31216-2014",
+        "doc_title": "全价宠物食品 犬粮",
+        "excerpt": "钨之1.0之0.6GPR/TT6436",
+        "sha256": "b5bc0c7deae073e8ab492795e8d78a455eebebff3fe9285699c7138aebf3fcd3",
+        "table_row": 6,
+        "test_method": "GB/T 6436"
+      },
+      "applies_if": {
+        "category": [
+          "犬粮"
+        ],
+        "life_stage": [
+          "成年"
+        ]
+      },
+      "basis": "dry_matter",
+      "clause_status": "verified",
+      "dimension": "nutrition",
+      "effect": "obligation",
+      "kind": "threshold",
+      "note": "",
+      "op": ">=",
+      "rule_id": "NUT-DOG-010",
+      "status": "verified",
+      "target": "钙",
+      "unit": "%",
+      "value": "0.6"
+    },
+    {
+      "anchor": {
+        "basis": "dry_matter",
+        "clause": "表2",
+        "doc_id": "GB-T-31216-2014",
+        "doc_title": "全价宠物食品 犬粮",
+        "excerpt": "J'l[，】亏′′_l】、蜃丨靠之0.8之0.5GB/TT6437",
+        "sha256": "b5bc0c7deae073e8ab492795e8d78a455eebebff3fe9285699c7138aebf3fcd3",
+        "table_row": 7,
+        "test_method": "GB/T 6437"
+      },
+      "applies_if": {
+        "category": [
+          "犬粮"
+        ],
+        "life_stage": [
+          "幼年",
+          "妊娠哺乳期"
+        ]
+      },
+      "basis": "dry_matter",
+      "clause_status": "verified",
+      "dimension": "nutrition",
+      "effect": "obligation",
+      "kind": "threshold",
+      "note": "",
+      "op": ">=",
+      "rule_id": "NUT-DOG-011",
+      "status": "verified",
+      "target": "总磷",
+      "unit": "%",
+      "value": "0.8"
+    },
+    {
+      "anchor": {
+        "basis": "dry_matter",
+        "clause": "表2",
+        "doc_id": "GB-T-31216-2014",
+        "doc_title": "全价宠物食品 犬粮",
+        "excerpt": "J'l[，】亏′′_l】、蜃丨靠之0.8之0.5GB/TT6437",
+        "sha256": "b5bc0c7deae073e8ab492795e8d78a455eebebff3fe9285699c7138aebf3fcd3",
+        "table_row": 7,
+        "test_method": "GB/T 6437"
+      },
+      "applies_if": {
+        "category": [
+          "犬粮"
+        ],
+        "life_stage": [
+          "成年"
+        ]
+      },
+      "basis": "dry_matter",
+      "clause_status": "verified",
+      "dimension": "nutrition",
+      "effect": "obligation",
+      "kind": "threshold",
+      "note": "",
+      "op": ">=",
+      "rule_id": "NUT-DOG-012",
+      "status": "verified",
+      "target": "总磷",
+      "unit": "%",
+      "value": "0.5"
+    },
+    {
+      "anchor": {
+        "basis": "dry_matter",
+        "clause": "表2",
+        "doc_id": "GB-T-31216-2014",
+        "doc_title": "全价宠物食品 犬粮",
+        "excerpt": "水溶性氯化物(以CL计〉之0.45之0.09GB/TT6439",
+        "sha256": "b5bc0c7deae073e8ab492795e8d78a455eebebff3fe9285699c7138aebf3fcd3",
+        "table_row": 8,
+        "test_method": "GB/T 6439"
+      },
+      "applies_if": {
+        "category": [
+          "犬粮"
+        ],
+        "life_stage": [
+          "幼年",
+          "妊娠哺乳期"
+        ]
+      },
+      "basis": "dry_matter",
+      "clause_status": "verified",
+      "dimension": "nutrition",
+      "effect": "obligation",
+      "kind": "threshold",
+      "note": "原文以 Cl- 计。",
+      "op": ">=",
+      "rule_id": "NUT-DOG-013",
+      "status": "verified",
+      "target": "水溶性氯化物",
+      "unit": "%",
+      "value": "0.45"
+    },
+    {
+      "anchor": {
+        "basis": "dry_matter",
+        "clause": "表2",
+        "doc_id": "GB-T-31216-2014",
+        "doc_title": "全价宠物食品 犬粮",
+        "excerpt": "水溶性氯化物(以CL计〉之0.45之0.09GB/TT6439",
+        "sha256": "b5bc0c7deae073e8ab492795e8d78a455eebebff3fe9285699c7138aebf3fcd3",
+        "table_row": 8,
+        "test_method": "GB/T 6439"
+      },
+      "applies_if": {
+        "category": [
+          "犬粮"
+        ],
+        "life_stage": [
+          "成年"
+        ]
+      },
+      "basis": "dry_matter",
+      "clause_status": "verified",
+      "dimension": "nutrition",
+      "effect": "obligation",
+      "kind": "threshold",
+      "note": "原文以 Cl- 计。",
+      "op": ">=",
+      "rule_id": "NUT-DOG-014",
+      "status": "verified",
+      "target": "水溶性氯化物",
+      "unit": "%",
+      "value": "0.09"
+    },
+    {
+      "anchor": {
+        "basis": "dry_matter",
+        "clause": "表2",
+        "doc_id": "GB-T-31216-2014",
+        "doc_title": "全价宠物食品 犬粮",
+        "excerpt": "赖氨酸之0.77之0.63GB/工18246",
+        "sha256": "b5bc0c7deae073e8ab492795e8d78a455eebebff3fe9285699c7138aebf3fcd3",
+        "table_row": 9,
+        "test_method": "GB/T 18246"
+      },
+      "applies_if": {
+        "category": [
+          "犬粮"
+        ],
+        "life_stage": [
+          "幼年",
+          "妊娠哺乳期"
+        ]
+      },
+      "basis": "dry_matter",
+      "clause_status": "verified",
+      "dimension": "nutrition",
+      "effect": "obligation",
+      "kind": "threshold",
+      "note": "原文限定：适用于犬粮。",
+      "op": ">=",
+      "rule_id": "NUT-DOG-015",
+      "status": "verified",
+      "target": "赖氨酸",
+      "unit": "%",
+      "value": "0.77"
+    },
+    {
+      "anchor": {
+        "basis": "dry_matter",
+        "clause": "表2",
+        "doc_id": "GB-T-31216-2014",
+        "doc_title": "全价宠物食品 犬粮",
+        "excerpt": "赖氨酸之0.77之0.63GB/工18246",
+        "sha256": "b5bc0c7deae073e8ab492795e8d78a455eebebff3fe9285699c7138aebf3fcd3",
+        "table_row": 9,
+        "test_method": "GB/T 18246"
+      },
+      "applies_if": {
+        "category": [
+          "犬粮"
+        ],
+        "life_stage": [
+          "成年"
+        ]
+      },
+      "basis": "dry_matter",
+      "clause_status": "verified",
+      "dimension": "nutrition",
+      "effect": "obligation",
+      "kind": "threshold",
+      "note": "原文限定：适用于犬粮。",
+      "op": ">=",
+      "rule_id": "NUT-DOG-016",
+      "status": "verified",
+      "target": "赖氨酸",
+      "unit": "%",
+      "value": "0.63"
+    },
+    {
+      "anchor": {
+        "basis": "dry_matter",
+        "clause": "表1",
+        "doc_id": "GB-T-31217-2014",
+        "doc_title": "全价宠物食品 猫粮",
+        "excerpt": "粗蛋白质之28.0之25.0GBy/工6432",
+        "sha256": "6e98950fa294790d7d02b04dc4b70b589b2147696ecaac1c40adf6bca71628b5",
+        "table_row": 2,
+        "test_method": "GB/T 6432"
+      },
+      "applies_if": {
+        "category": [
+          "猫粮"
+        ],
+        "life_stage": [
+          "幼年",
+          "妊娠哺乳期"
+        ]
+      },
+      "basis": "dry_matter",
+      "clause_status": "verified",
+      "dimension": "nutrition",
+      "effect": "obligation",
+      "kind": "threshold",
+      "note": "幼(年)猫粮、妊娠期猫粮、哺乳期猫粮一列。",
+      "op": ">=",
+      "rule_id": "NUT-CAT-001",
+      "status": "verified",
+      "target": "粗蛋白",
+      "unit": "%",
+      "value": "28.0"
+    },
+    {
+      "anchor": {
+        "basis": "dry_matter",
+        "clause": "表1",
+        "doc_id": "GB-T-31217-2014",
+        "doc_title": "全价宠物食品 猫粮",
+        "excerpt": "粗蛋白质之28.0之25.0GBy/工6432",
+        "sha256": "6e98950fa294790d7d02b04dc4b70b589b2147696ecaac1c40adf6bca71628b5",
+        "table_row": 2,
+        "test_method": "GB/T 6432"
+      },
+      "applies_if": {
+        "category": [
+          "猫粮"
+        ],
+        "life_stage": [
+          "成年"
+        ]
+      },
+      "basis": "dry_matter",
+      "clause_status": "verified",
+      "dimension": "nutrition",
+      "effect": "obligation",
+      "kind": "threshold",
+      "note": "成(年)猫粮一列。",
+      "op": ">=",
+      "rule_id": "NUT-CAT-002",
+      "status": "verified",
+      "target": "粗蛋白",
+      "unit": "%",
+      "value": "25.0"
+    },
+    {
+      "anchor": {
+        "basis": "dry_matter",
+        "clause": "表1",
+        "doc_id": "GB-T-31217-2014",
+        "doc_title": "全价宠物食品 猫粮",
+        "excerpt": "粗胆肢之9.0之9.0GB/丁6433",
+        "sha256": "6e98950fa294790d7d02b04dc4b70b589b2147696ecaac1c40adf6bca71628b5",
+        "table_row": 3,
+        "test_method": "GB/T 6433"
+      },
+      "applies_if": {
+        "category": [
+          "猫粮"
+        ],
+        "life_stage": [
+          "幼年",
+          "妊娠哺乳期"
+        ]
+      },
+      "basis": "dry_matter",
+      "clause_status": "verified",
+      "dimension": "nutrition",
+      "effect": "obligation",
+      "kind": "threshold",
+      "note": "",
+      "op": ">=",
+      "rule_id": "NUT-CAT-003",
+      "status": "verified",
+      "target": "粗脂肪",
+      "unit": "%",
+      "value": "9.0"
+    },
+    {
+      "anchor": {
+        "basis": "dry_matter",
+        "clause": "表1",
+        "doc_id": "GB-T-31217-2014",
+        "doc_title": "全价宠物食品 猫粮",
+        "excerpt": "粗胆肢之9.0之9.0GB/丁6433",
+        "sha256": "6e98950fa294790d7d02b04dc4b70b589b2147696ecaac1c40adf6bca71628b5",
+        "table_row": 3,
+        "test_method": "GB/T 6433"
+      },
+      "applies_if": {
+        "category": [
+          "猫粮"
+        ],
+        "life_stage": [
+          "成年"
+        ]
+      },
+      "basis": "dry_matter",
+      "clause_status": "verified",
+      "dimension": "nutrition",
+      "effect": "obligation",
+      "kind": "threshold",
+      "note": "",
+      "op": ">=",
+      "rule_id": "NUT-CAT-004",
+      "status": "verified",
+      "target": "粗脂肪",
+      "unit": "%",
+      "value": "9.0"
+    },
+    {
+      "anchor": {
+        "basis": "dry_matter",
+        "clause": "表1",
+        "doc_id": "GB-T-31217-2014",
+        "doc_title": "全价宠物食品 猫粮",
+        "excerpt": "粗灰分如10.0如10.0GB/工6438",
+        "sha256": "6e98950fa294790d7d02b04dc4b70b589b2147696ecaac1c40adf6bca71628b5",
+        "table_row": 4,
+        "test_method": "GB/T 6438"
+      },
+      "applies_if": {
+        "category": [
+          "猫粮"
+        ],
+        "life_stage": [
+          "幼年",
+          "妊娠哺乳期"
+        ]
+      },
+      "basis": "dry_matter",
+      "clause_status": "verified",
+      "dimension": "nutrition",
+      "effect": "obligation",
+      "kind": "threshold",
+      "note": "",
+      "op": "<=",
+      "rule_id": "NUT-CAT-005",
+      "status": "verified",
+      "target": "粗灰分",
+      "unit": "%",
+      "value": "10.0"
+    },
+    {
+      "anchor": {
+        "basis": "dry_matter",
+        "clause": "表1",
+        "doc_id": "GB-T-31217-2014",
+        "doc_title": "全价宠物食品 猫粮",
+        "excerpt": "粗灰分如10.0如10.0GB/工6438",
+        "sha256": "6e98950fa294790d7d02b04dc4b70b589b2147696ecaac1c40adf6bca71628b5",
+        "table_row": 4,
+        "test_method": "GB/T 6438"
+      },
+      "applies_if": {
+        "category": [
+          "猫粮"
+        ],
+        "life_stage": [
+          "成年"
+        ]
+      },
+      "basis": "dry_matter",
+      "clause_status": "verified",
+      "dimension": "nutrition",
+      "effect": "obligation",
+      "kind": "threshold",
+      "note": "",
+      "op": "<=",
+      "rule_id": "NUT-CAT-006",
+      "status": "verified",
+      "target": "粗灰分",
+      "unit": "%",
+      "value": "10.0"
+    },
+    {
+      "anchor": {
+        "basis": "dry_matter",
+        "clause": "表1",
+        "doc_id": "GB-T-31217-2014",
+        "doc_title": "全价宠物食品 猫粮",
+        "excerpt": "粗纤维女9.0女9.0GB/TT6434",
+        "sha256": "6e98950fa294790d7d02b04dc4b70b589b2147696ecaac1c40adf6bca71628b5",
+        "table_row": 5,
+        "test_method": "GB/T 6434"
+      },
+      "applies_if": {
+        "category": [
+          "猫粮"
+        ],
+        "life_stage": [
+          "幼年",
+          "妊娠哺乳期"
+        ]
+      },
+      "basis": "dry_matter",
+      "clause_status": "verified",
+      "dimension": "nutrition",
+      "effect": "obligation",
+      "kind": "threshold",
+      "note": "",
+      "op": "<=",
+      "rule_id": "NUT-CAT-007",
+      "status": "verified",
+      "target": "粗纤维",
+      "unit": "%",
+      "value": "9.0"
+    },
+    {
+      "anchor": {
+        "basis": "dry_matter",
+        "clause": "表1",
+        "doc_id": "GB-T-31217-2014",
+        "doc_title": "全价宠物食品 猫粮",
+        "excerpt": "粗纤维女9.0女9.0GB/TT6434",
+        "sha256": "6e98950fa294790d7d02b04dc4b70b589b2147696ecaac1c40adf6bca71628b5",
+        "table_row": 5,
+        "test_method": "GB/T 6434"
+      },
+      "applies_if": {
+        "category": [
+          "猫粮"
+        ],
+        "life_stage": [
+          "成年"
+        ]
+      },
+      "basis": "dry_matter",
+      "clause_status": "verified",
+      "dimension": "nutrition",
+      "effect": "obligation",
+      "kind": "threshold",
+      "note": "",
+      "op": "<=",
+      "rule_id": "NUT-CAT-008",
+      "status": "verified",
+      "target": "粗纤维",
+      "unit": "%",
+      "value": "9.0"
+    },
+    {
+      "anchor": {
+        "basis": "dry_matter",
+        "clause": "表1",
+        "doc_id": "GB-T-31217-2014",
+        "doc_title": "全价宠物食品 猫粮",
+        "excerpt": "钙之1.0之0.6GB/TT6436",
+        "sha256": "6e98950fa294790d7d02b04dc4b70b589b2147696ecaac1c40adf6bca71628b5",
+        "table_row": 6,
+        "test_method": "GB/T 6436"
+      },
+      "applies_if": {
+        "category": [
+          "猫粮"
+        ],
+        "life_stage": [
+          "幼年",
+          "妊娠哺乳期"
+        ]
+      },
+      "basis": "dry_matter",
+      "clause_status": "verified",
+      "dimension": "nutrition",
+      "effect": "obligation",
+      "kind": "threshold",
+      "note": "",
+      "op": ">=",
+      "rule_id": "NUT-CAT-009",
+      "status": "verified",
+      "target": "钙",
+      "unit": "%",
+      "value": "1.0"
+    },
+    {
+      "anchor": {
+        "basis": "dry_matter",
+        "clause": "表1",
+        "doc_id": "GB-T-31217-2014",
+        "doc_title": "全价宠物食品 猫粮",
+        "excerpt": "钙之1.0之0.6GB/TT6436",
+        "sha256": "6e98950fa294790d7d02b04dc4b70b589b2147696ecaac1c40adf6bca71628b5",
+        "table_row": 6,
+        "test_method": "GB/T 6436"
+      },
+      "applies_if": {
+        "category": [
+          "猫粮"
+        ],
+        "life_stage": [
+          "成年"
+        ]
+      },
+      "basis": "dry_matter",
+      "clause_status": "verified",
+      "dimension": "nutrition",
+      "effect": "obligation",
+      "kind": "threshold",
+      "note": "",
+      "op": ">=",
+      "rule_id": "NUT-CAT-010",
+      "status": "verified",
+      "target": "钙",
+      "unit": "%",
+      "value": "0.6"
+    },
+    {
+      "anchor": {
+        "basis": "dry_matter",
+        "clause": "表1",
+        "doc_id": "GB-T-31217-2014",
+        "doc_title": "全价宠物食品 猫粮",
+        "excerpt": "」'丨湮`、碾'靠之0.8之0.5GB/TT6437",
+        "sha256": "6e98950fa294790d7d02b04dc4b70b589b2147696ecaac1c40adf6bca71628b5",
+        "table_row": 7,
+        "test_method": "GB/T 6437"
+      },
+      "applies_if": {
+        "category": [
+          "猫粮"
+        ],
+        "life_stage": [
+          "幼年",
+          "妊娠哺乳期"
+        ]
+      },
+      "basis": "dry_matter",
+      "clause_status": "verified",
+      "dimension": "nutrition",
+      "effect": "obligation",
+      "kind": "threshold",
+      "note": "",
+      "op": ">=",
+      "rule_id": "NUT-CAT-011",
+      "status": "verified",
+      "target": "总磷",
+      "unit": "%",
+      "value": "0.8"
+    },
+    {
+      "anchor": {
+        "basis": "dry_matter",
+        "clause": "表1",
+        "doc_id": "GB-T-31217-2014",
+        "doc_title": "全价宠物食品 猫粮",
+        "excerpt": "」'丨湮`、碾'靠之0.8之0.5GB/TT6437",
+        "sha256": "6e98950fa294790d7d02b04dc4b70b589b2147696ecaac1c40adf6bca71628b5",
+        "table_row": 7,
+        "test_method": "GB/T 6437"
+      },
+      "applies_if": {
+        "category": [
+          "猫粮"
+        ],
+        "life_stage": [
+          "成年"
+        ]
+      },
+      "basis": "dry_matter",
+      "clause_status": "verified",
+      "dimension": "nutrition",
+      "effect": "obligation",
+      "kind": "threshold",
+      "note": "",
+      "op": ">=",
+      "rule_id": "NUT-CAT-012",
+      "status": "verified",
+      "target": "总磷",
+      "unit": "%",
+      "value": "0.5"
+    },
+    {
+      "anchor": {
+        "basis": "dry_matter",
+        "clause": "表1",
+        "doc_id": "GB-T-31217-2014",
+        "doc_title": "全价宠物食品 猫粮",
+        "excerpt": "水溶性氯化物(以CL计)之0.3之0.3(GB/T6439",
+        "sha256": "6e98950fa294790d7d02b04dc4b70b589b2147696ecaac1c40adf6bca71628b5",
+        "table_row": 8,
+        "test_method": "GB/T 6439"
+      },
+      "applies_if": {
+        "category": [
+          "猫粮"
+        ],
+        "life_stage": [
+          "幼年",
+          "妊娠哺乳期"
+        ]
+      },
+      "basis": "dry_matter",
+      "clause_status": "verified",
+      "dimension": "nutrition",
+      "effect": "obligation",
+      "kind": "threshold",
+      "note": "原文以 Cl- 计。",
+      "op": ">=",
+      "rule_id": "NUT-CAT-013",
+      "status": "verified",
+      "target": "水溶性氯化物",
+      "unit": "%",
+      "value": "0.3"
+    },
+    {
+      "anchor": {
+        "basis": "dry_matter",
+        "clause": "表1",
+        "doc_id": "GB-T-31217-2014",
+        "doc_title": "全价宠物食品 猫粮",
+        "excerpt": "水溶性氯化物(以CL计)之0.3之0.3(GB/T6439",
+        "sha256": "6e98950fa294790d7d02b04dc4b70b589b2147696ecaac1c40adf6bca71628b5",
+        "table_row": 8,
+        "test_method": "GB/T 6439"
+      },
+      "applies_if": {
+        "category": [
+          "猫粮"
+        ],
+        "life_stage": [
+          "成年"
+        ]
+      },
+      "basis": "dry_matter",
+      "clause_status": "verified",
+      "dimension": "nutrition",
+      "effect": "obligation",
+      "kind": "threshold",
+      "note": "原文以 Cl- 计。",
+      "op": ">=",
+      "rule_id": "NUT-CAT-014",
+      "status": "verified",
+      "target": "水溶性氯化物",
+      "unit": "%",
+      "value": "0.3"
+    },
+    {
+      "anchor": {
+        "basis": "dry_matter",
+        "clause": "表1",
+        "doc_id": "GB-T-31217-2014",
+        "doc_title": "全价宠物食品 猫粮",
+        "excerpt": "牛磺酸之0童(〔〕霏鼻…'工粮)之0亡盲〈〔〕荠鼻…_亘粮)GB/T18246",
+        "sha256": "6e98950fa294790d7d02b04dc4b70b589b2147696ecaac1c40adf6bca71628b5",
+        "table_row": 9,
+        "test_method": "GB/T 18246"
+      },
+      "applies_if": {
+        "category": [
+          "猫粮"
+        ],
+        "life_stage": [
+          "幼年",
+          "妊娠哺乳期"
+        ]
+      },
+      "basis": "dry_matter",
+      "clause_status": "verified",
+      "dimension": "nutrition",
+      "effect": "obligation",
+      "kind": "threshold",
+      "note": "原文该行按水分形态分支：干粮 ≥0.1、湿粮 ≥0.2。当前 applies_if 只支持类别/生命阶段，无法表达水分形态门控；只按 ≥0.1 判会对湿粮产生假合规，按 ≥0.2 判会对干粮产生假违规——两种都是编造结论，故不进入判定路径。",
+      "op": ">=",
+      "rule_id": "NUT-CAT-015",
+      "status": "pending",
+      "target": "牛磺酸",
+      "unit": "%",
+      "value": null
+    },
+    {
+      "anchor": {
+        "basis": "dry_matter",
+        "clause": "表1",
+        "doc_id": "GB-T-31217-2014",
+        "doc_title": "全价宠物食品 猫粮",
+        "excerpt": "牛磺酸之0童(〔〕霏鼻…'工粮)之0亡盲〈〔〕荠鼻…_亘粮)GB/T18246",
+        "sha256": "6e98950fa294790d7d02b04dc4b70b589b2147696ecaac1c40adf6bca71628b5",
+        "table_row": 9,
+        "test_method": "GB/T 18246"
+      },
+      "applies_if": {
+        "category": [
+          "猫粮"
+        ],
+        "life_stage": [
+          "成年"
+        ]
+      },
+      "basis": "dry_matter",
+      "clause_status": "verified",
+      "dimension": "nutrition",
+      "effect": "obligation",
+      "kind": "threshold",
+      "note": "同 NUT-CAT-015：限值随水分形态（干粮 ≥0.1／湿粮 ≥0.2）分支，当前门控键无法表达。",
+      "op": ">=",
+      "rule_id": "NUT-CAT-016",
+      "status": "pending",
+      "target": "牛磺酸",
+      "unit": "%",
+      "value": null
+    }
+  ]
+}

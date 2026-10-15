@@ -20,15 +20,19 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from ..model import (
+    BASIS_DRY_MATTER,
+    EFFECT_OBLIGATION,
     DIM_CLAIM,
     DIM_LABEL,
     DIM_NUTRITION,
+    FIELD_MOISTURE,
     VERDICT_COMPLIANT,
     VERDICT_NONCOMPLIANT,
     VERDICT_NOT_PROVIDED,
     VERDICT_SKIPPED,
     VERDICT_UNKNOWN,
     CheckResult,
+    format_decimal,
 )
 from .rng import SplitMix64
 
@@ -45,7 +49,10 @@ CASE_UNSUPPORTED_CLAIM = "unsupported_claim"  #: 宣称无支撑
 
 CASE_TYPES = (CASE_COMPLIANT, CASE_MISSING, CASE_OVERLIMIT, CASE_UNSUPPORTED_CLAIM)
 
-#: 可植入的缺失字段（键为档案字段名）
+#: 标签模板**能移除**的字段（生成器的构造能力，不是判定口径）。
+#: 判定口径（"缺了算不符合还是未观测"）一律由规则包决定——M0 曾在这里
+#: 把 additives 当成无条件义务写死，M1 按原文核对后该条是条件触发，
+#: 于是基准自己产出了一条假真值。**能移除 ≠ 缺了就违规**。
 MISSING_TARGETS = ("net_content", "producer", "additives", "ingredients")
 
 #: 非 pass 结论集合——对账按"文档全部非 pass 集合"比对
@@ -129,6 +136,33 @@ def _violating_value(limit: Decimal, op: str, margin: Decimal) -> Decimal:
     return limit + margin
 
 
+#: 合成标签标示的水分含量（**夹具数据，不是政策数值**）。
+#:
+#: 国标理化指标是干基，标签标示是 as-fed；要构造"按干基恰好达标/越限"的
+#: 合成样例，标签上就必须有一个水分，引擎才有换算依据。这个值由夹具自己定，
+#: 与规则包无关（它不是任何标准里的限值），故不属于"政策数值"。
+#: 取一个干粮口径的值，使"标示值 ≠ 干基值"成立——正是这样才让"基准不同"
+#: 这件事在基准套件里真的被测到，而不是被"水分=0"的退化情形掩盖。
+SYNTHETIC_MOISTURE = Decimal("12")
+
+
+def _sample_moisture(thresholds) -> Decimal:
+    """合成样例标示的水分（夹具数据，见 ``SYNTHETIC_MOISTURE``）。"""
+    return SYNTHETIC_MOISTURE
+
+
+def _to_declared(limit: Decimal, op: str, basis: str,
+                 moisture: Optional[Decimal]) -> Decimal:
+    """把**干基**限值换算成该标签应当标示的**as-fed**值。
+
+    只在样例确实要构造"达标/越限"的标示值、且限值是干基时才需要：
+    ``as-fed = 干基 × (1 - 水分%/100)``。
+    """
+    if basis != BASIS_DRY_MATTER or moisture is None:
+        return limit
+    return limit * (Decimal(100) - moisture) / Decimal(100)
+
+
 def generate_cases(rules_dir: Path, per_type: int = DEFAULT_PER_TYPE,
                    seed: int = 20261015) -> Dict[str, Any]:
     """程序化生成四类合成标签样例 + 植入真值。
@@ -165,6 +199,9 @@ def generate_cases(rules_dir: Path, per_type: int = DEFAULT_PER_TYPE,
         ))
 
     # --- 类 2：缺项样例 -------------------------------------------------
+    # 期望**从规则包的 effect 实算**，不写死："无条件义务缺失 = noncompliant；
+    # 条件触发项缺失 = unknown（待人工确认）"。M0 把 additives 写死成义务，
+    # M1 按原文核对后该条是条件触发 → 写死就会产出假真值。
     if presence_rules:
         for i in range(per_type):
             index += 1
@@ -174,14 +211,27 @@ def generate_cases(rules_dir: Path, per_type: int = DEFAULT_PER_TYPE,
             kwargs = {("include_%s" % target): False}
             text = build_label_text(brand, category, life_stage, guaranteed, **kwargs)
             expected: Dict[str, str] = {}
-            if target in presence_rules:
-                expected[presence_rules[target].rule_id] = VERDICT_NONCOMPLIANT
+            rule = presence_rules.get(target)
+            if rule is not None:
+                # 义务类型决定缺失结论（见 plan/03 D1 分栏纪律）
+                expected[rule.rule_id] = (
+                    VERDICT_NONCOMPLIANT
+                    if rule.effect == EFFECT_OBLIGATION else VERDICT_UNKNOWN
+                )
+            overall = (
+                "noncompliant"
+                if any(v == VERDICT_NONCOMPLIANT for v in expected.values())
+                else "compliant"
+            )
             cases.append(_case(
                 case_id="M-%03d" % index, case_type=CASE_MISSING, text=text,
-                injected="植入缺失字段：%s" % target,
-                expected_overall="noncompliant" if expected else "not_assessed",
+                injected="植入缺失字段：%s（该字段的规则 effect=%s）" % (
+                    target, rule.effect if rule is not None else "无规则"),
+                expected_overall=overall,
                 expected_findings=expected,
-                also_expect=[{"target": target, "verdict": VERDICT_NONCOMPLIANT}],
+                also_expect=[{"target": target,
+                              "verdict": expected.get(rule.rule_id, "")
+                              if rule is not None else ""}],
             ))
 
     # --- 类 3：越限样例 -------------------------------------------------
@@ -195,14 +245,24 @@ def generate_cases(rules_dir: Path, per_type: int = DEFAULT_PER_TYPE,
             if category is None or life_stage is None:
                 continue
             margin = Decimal("2")
-            bad = _violating_value(rule.value, rule.op, margin)
-            guaranteed = [(rule.target, rule.op, str(bad.normalize()))]
+            moisture = _sample_moisture(thresholds)
+            # 越限样例：把干基限值先换算成 as-fed，再往下压出"越限"的标示值；
+            # 直接拿干基限值减余量会得到一个**按 as-fed 看低得离谱**的数，
+            # 而它换算回干基后可能反而达标——"期望不符合"就成了假真值。
+            declared_limit = _to_declared(rule.value, rule.op, rule.basis, moisture)
+            bad = _violating_value(declared_limit, rule.op, margin)
+            guaranteed: List[Tuple[str, str, str]] = []
+            # 目标指标本身是水分时不另写一行：解析器对同一指标只取首个出现，
+            # 多写会把真正要断言的那个值顶掉（夹具自相矛盾）。
+            if moisture is not None and rule.target != FIELD_MOISTURE:
+                guaranteed.append((FIELD_MOISTURE, "<=", format_decimal(moisture)))
+            guaranteed.append((rule.target, rule.op, format_decimal(bad)))
             text = build_label_text(brand, category, life_stage, guaranteed)
             cases.append(_case(
                 case_id="O-%03d" % index, case_type=CASE_OVERLIMIT, text=text,
-                injected="植入越限：%s %s %s（限值 %s %s）" % (
-                    rule.target, rule.op, bad.normalize(), rule.value.normalize(),
-                    rule.unit or ""),
+                injected="植入越限：%s %s %s（标示口径；干基限值 %s %s）" % (
+                    rule.target, rule.op, format_decimal(bad),
+                    format_decimal(rule.value), rule.unit or ""),
                 expected_overall="noncompliant",
                 expected_findings={rule.rule_id: VERDICT_NONCOMPLIANT},
             ))
@@ -244,7 +304,12 @@ def _first_of(rule, key: str) -> Optional[str]:
 
 
 def _pick_axes(thresholds, rng) -> Tuple[str, str, List[Tuple[str, str, str]]]:
-    """选一组 (类别, 生命阶段, 达标保证值)。数值按规则包限值算出。"""
+    """选一组 (类别, 生命阶段, 达标保证值)。数值按规则包限值算出。
+
+    **基准换算**：国标理化指标是干基，标签标示是 as-fed。样例同时标示水分，
+    标示值由干基限值换算而来——否则"按干基比"的引擎会把合规样例判成不符合
+    （实测本项目基准套件正是这样报过误报）。
+    """
     if not thresholds:
         return "", "", []
     # 按 (类别, 生命阶段) 分组，保证同一组内的规则适用同一份档案
@@ -259,10 +324,16 @@ def _pick_axes(thresholds, rng) -> Tuple[str, str, List[Tuple[str, str, str]]]:
         return "", "", []
     keys = sorted(groups)  # 排序后取，保证确定性
     key = keys[rng.randbelow(len(keys))]
+    moisture = _sample_moisture(thresholds)
     guaranteed: List[Tuple[str, str, str]] = []
+    if moisture is not None:
+        guaranteed.append((FIELD_MOISTURE, "<=", format_decimal(moisture)))
     for rule in sorted(groups[key], key=lambda r: r.rule_id):
-        good = _passing_value(rule.value, rule.op, Decimal("2"))
-        guaranteed.append((rule.target, rule.op, str(good.normalize())))
+        if rule.target == FIELD_MOISTURE:
+            continue  # 水分已单独标示，不重复
+        declared_limit = _to_declared(rule.value, rule.op, rule.basis, moisture)
+        good = _passing_value(declared_limit, rule.op, Decimal("2"))
+        guaranteed.append((rule.target, rule.op, format_decimal(good)))
     return key[0], key[1], guaranteed
 
 

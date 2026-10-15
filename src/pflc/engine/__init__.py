@@ -18,14 +18,18 @@ from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Tuple
 
 from ..model import (
+    BASIS_AS_FED,
+    BASIS_DRY_MATTER,
     DIM_CLAIM,
     DIM_LABEL,
     DIM_NUTRITION,
     DIMENSIONS,
     EFFECT_CONDITIONAL,
     EXCLUDE_NO_EFFECTIVE_RULES,
+    FIELD_MOISTURE,
     FIELD_PROVIDED,
     OVERALL_NOT_ASSESSED,
+    REASON_BASIS_UNDETERMINED,
     VERDICT_COMPLIANT,
     VERDICT_NONCOMPLIANT,
     VERDICT_NOT_PROVIDED,
@@ -35,6 +39,7 @@ from ..model import (
     DimensionResult,
     Finding,
     LabelCard,
+    format_decimal,
 )
 from ..rules import (
     KIND_CLAIM_SUPPORT,
@@ -100,10 +105,40 @@ def _judge_presence(rule: Rule, card: LabelCard) -> Finding:
     )
 
 
+def _to_dry_matter(observed: Decimal, card: LabelCard) -> Optional[Decimal]:
+    """把"按标示状态（as-fed）"的观测值换算到**干物质基准**。
+
+    GB/T 31216/31217 的理化指标表头写明"指标（以干物质计）/%"，而标签上标示的
+    保证值是按产品标示状态给的。两者**基准不同，直接比会造假结论**：
+    高水分的湿粮标示的百分数换算到干基后会显著变大，直接比会误判为不符合。
+    实测本项目基准套件正是这样产生过误报。
+
+    换算：``干基值 = 标示值 / (1 - 水分% / 100)``。
+    水分未标示 → 无法换算，返回 ``None``（调用方记"基准无法确定"，
+    **绝不拿未换算的值去比**，也绝不猜一个水分）。
+    """
+    moisture = card.guaranteed.get(FIELD_MOISTURE)
+    if moisture is None or not moisture.is_provided:
+        return None
+    try:
+        moisture_value = Decimal(str(moisture.value))
+    except Exception:
+        return None
+    # 水分必须是 (0,100) 开区间内的百分数；越界即无法作为换算依据
+    if not (Decimal(0) < moisture_value < Decimal(100)):
+        return None
+    dry_fraction = (Decimal(100) - moisture_value) / Decimal(100)
+    return observed / dry_fraction
+
+
 def _judge_threshold(rule: Rule, card: LabelCard) -> Finding:
     """阈值判定：保证值 vs 限值（全程 Decimal）。
 
     保证值缺失 → ``not_provided``（不是不符合——没给值 ≠ 值不达标）。
+
+    基准处理：限值若为**干物质基准**（GB/T 理化指标表），先把观测值换算到
+    干基再比；换算所需的"水分"缺失时记 ``unknown`` + 原因码
+    ``basis_undetermined``——**不拿未换算的值直接比**（那会造假结论）。
     """
     field = card.field(rule.target)
     if field is None or not field.is_provided:
@@ -127,13 +162,31 @@ def _judge_threshold(rule: Rule, card: LabelCard) -> Finding:
                 note="观测值无法作为数值比较", anchor=rule.anchor,
             )
 
+    compare_value = observed
+    basis_note: Optional[str] = None
+    if getattr(rule, "basis", BASIS_AS_FED) == BASIS_DRY_MATTER:
+        converted = _to_dry_matter(observed, card)
+        if converted is None:
+            return Finding(
+                rule_id=rule.rule_id, dimension=rule.dimension, target=rule.target,
+                verdict=VERDICT_UNKNOWN, effect=rule.effect,
+                observed=_render_value(observed, field.unit),
+                expected=_render_expected(rule),
+                note=REASON_BASIS_UNDETERMINED,
+                anchor=rule.anchor,
+            )
+        compare_value = converted
+        basis_note = "标示值 %s 换算为干基 %s（水分 %s%%）" % (
+            format_decimal(observed), format_decimal(converted),
+            format_decimal(Decimal(str(card.guaranteed[FIELD_MOISTURE].value))))
+
     try:
-        ok = rule.compare(observed)
+        ok = rule.compare(compare_value)
     except RulePackError as exc:
         return Finding(
             rule_id=rule.rule_id, dimension=rule.dimension, target=rule.target,
             verdict=VERDICT_UNKNOWN, effect=rule.effect,
-            observed=str(observed), expected=_render_expected(rule),
+            observed=str(compare_value), expected=_render_expected(rule),
             note=str(exc), anchor=rule.anchor,
         )
 
@@ -142,7 +195,7 @@ def _judge_threshold(rule: Rule, card: LabelCard) -> Finding:
         verdict=VERDICT_COMPLIANT if ok else VERDICT_NONCOMPLIANT,
         effect=rule.effect,
         observed=_render_value(observed, field.unit),
-        expected=_render_expected(rule), anchor=rule.anchor,
+        expected=_render_expected(rule), note=basis_note, anchor=rule.anchor,
     )
 
 
@@ -188,15 +241,19 @@ def _support_present(card: LabelCard, name: str) -> bool:
 
 
 def _render_value(value: Decimal, unit: Optional[str]) -> str:
-    text = str(value.normalize())
+    text = format_decimal(value)
     return "%s %s" % (text, unit) if unit else text
 
 
 def _render_expected(rule: Rule) -> str:
     if rule.op is None or rule.value is None:
         return ""
-    text = "%s %s" % (rule.op, rule.value.normalize())
-    return "%s %s" % (text, rule.unit) if rule.unit else text
+    text = "%s %s" % (rule.op, format_decimal(rule.value))
+    if rule.unit:
+        text = "%s %s" % (text, rule.unit)
+    if getattr(rule, "basis", BASIS_AS_FED) == BASIS_DRY_MATTER:
+        text = "%s（以干物质计）" % text
+    return text
 
 
 _JUDGES = {

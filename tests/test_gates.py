@@ -416,20 +416,50 @@ def test_source_files_use_lf_line_endings():
     assert violations == [], "源码含 CRLF：%s" % violations
 
 
+#: 冻结数据里的**二进制**扩展名——0x0D 是这些格式的合法内容字节
+#: （PNG 的 IDAT 压缩流、PDF 的流对象），拿"含 CR"判它们必然误报。
+FROZEN_BINARY_SUFFIXES = (".pdf", ".png", ".gif", ".jpg", ".jpeg", ".webp",
+                          ".ceb", ".zip", ".docx", ".xlsx")
+
+
 def test_frozen_data_has_no_cr():
-    """冻结 fixtures 出现 CR 即大声失败（EOL 门）。"""
+    """冻结 fixtures 出现 CR 即大声失败（EOL 门）。
+
+    **二进制豁免**：只对 ``FROZEN_BINARY_SUFFIXES`` 里的扩展名放行，
+    且豁免**按扩展名**（不是"这个文件全放过"）。文本类冻结数据（规则包、
+    夹具、条文块、原文快照的文本件）仍逐个查 CR。
+    """
     frozen_dirs = (ROOT / "data" / "rules", ROOT / "data" / "samples",
                    ROOT / "data" / "benchmark", ROOT / "data" / "knowledge")
     violations = []
+    text_files_checked = 0
     for base in frozen_dirs:
         if not base.is_dir():
             continue
         for path in sorted(base.rglob("*")):
             if not path.is_file():
                 continue
+            if path.suffix.lower() in FROZEN_BINARY_SUFFIXES:
+                continue
+            text_files_checked += 1
             if b"\r" in path.read_bytes():
                 violations.append(str(path.relative_to(ROOT)))
     assert violations == [], "冻结数据含 CR：%s" % violations
+    # 防空转：豁免必须只放过少数二进制件，文本件仍被逐个查过
+    assert text_files_checked > 0, "冻结目录里一个文本件都没查到 = 门禁空转"
+
+
+def test_frozen_cr_gate_binary_exemption_is_not_vacuous():
+    """豁免**非空转**证明：二进制扩展名之外的文件仍会被 CR 判定命中。"""
+    import tempfile
+    with tempfile.TemporaryDirectory() as td:
+        probe = Path(td) / "probe.txt"
+        probe.write_bytes(b"a\r\nb")          # 文本件含 CR
+        assert probe.suffix.lower() not in FROZEN_BINARY_SUFFIXES
+        assert b"\r" in probe.read_bytes(), "文本件的 CR 必须仍可被检出"
+        binary = Path(td) / "probe.png"
+        binary.write_bytes(b"\x89PNG\r\n")
+        assert binary.suffix.lower() in FROZEN_BINARY_SUFFIXES, "二进制豁免口径失效"
 
 
 def test_gitattributes_declares_frozen_paths_as_text_free():

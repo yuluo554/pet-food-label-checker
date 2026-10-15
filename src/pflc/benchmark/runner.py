@@ -22,11 +22,14 @@ from typing import Any, Callable, Dict, List, Optional, Sequence
 
 from ..engine import check_card
 from ..model import (
+    BASIS_DRY_MATTER,
     DIM_CLAIM,
     DIM_LABEL,
     DIM_NUTRITION,
+    FIELD_MOISTURE,
     VERDICT_COMPLIANT,
     VERDICT_NONCOMPLIANT,
+    format_decimal,
 )
 from ..parse import parse_label
 from ..rules import KIND_THRESHOLD, load_manifest, load_pack
@@ -235,6 +238,10 @@ def run_boundary(rules_dir: Path, thresholds: Dict[str, Any]) -> SuiteResult:
     对每条阈值规则，在限值 ``±BOUNDARY_STEP`` 处构造观测值，
     断言引擎结论在**跨过端点时翻转**——这证明"引擎在所有有限端点上对"，
     而样本驱动只能证明"在真值库恰好覆盖的样本上对"。
+
+    **干基换算**：国标限值是干基，标签标示是 as-fed。邻域值必须换算成
+    as-fed 再写进标签文本，并同时标示水分——否则引擎（会做干基换算）
+    收到的观测值根本不是我们想构造的那个数，断言失去意义。
     """
     nutrition = load_pack(DIM_NUTRITION, Path(rules_dir))
     rules = [r for r in nutrition.effective() if r.kind == KIND_THRESHOLD]
@@ -246,19 +253,24 @@ def run_boundary(rules_dir: Path, thresholds: Dict[str, Any]) -> SuiteResult:
         result.metrics = {"rules": 0, "checked": 0, "passed": 0}
         return result
 
+    #: 水分标示值：从规则包的水分限值推导（不硬编码政策数值）
+    moisture = _boundary_moisture(rules)
+
     checked = 0
     passed = 0
     for rule in rules:
         category = _first_of(rule, "category")
         life_stage = _first_of(rule, "life_stage")
-        if category is None or life_stage is None:
+        if category is None or life_stage is None or rule.value is None:
             continue
         for delta, expect_pass in ((BOUNDARY_STEP, True), (-BOUNDARY_STEP, False)):
             observed = _nudge(rule.value, rule.op, delta)
             if observed is None:
                 continue
             checked += 1
-            text = _boundary_label(category, life_stage, rule.target, rule.op, observed)
+            declared = _declared_from_dry(observed, rule.basis, moisture)
+            text = _boundary_label(category, life_stage, rule.target, rule.op,
+                                   declared, moisture)
             card = parse_label(text, source="boundary:%s" % rule.rule_id)
             check = check_card(card, Path(rules_dir))
             verdict = _verdict_of(check, rule.rule_id)
@@ -306,18 +318,50 @@ def _nudge(value: Decimal, op: str, delta: Decimal) -> Optional[Decimal]:
 
 
 def _boundary_label(category: str, life_stage: str, target: str, op: str,
-                    observed: Decimal) -> str:
-    """构造只含单条指标的最小标签文本（数值由调用方从规则表算出）。"""
-    return (
-        "%s %s\n"
-        "原料组成：鸡肉、糙米\n"
-        "成分分析保证值：\n"
-        "%s %s %s%%\n"
-        "净含量：2kg\n"
-        "生产企业：某合成宠物食品有限公司\n"
-        "生产日期：2026-01-01\n"
-        "保质期：18个月\n"
-    ) % ("测试粮A", "%s %s" % (category, life_stage), target, op, observed.normalize())
+                    observed: Decimal, moisture: Optional[Decimal] = None) -> str:
+    """构造只含单条指标的最小标签文本（数值由调用方从规则表算出）。
+
+    干基限值需要同时标示水分，引擎才有换算依据——否则引擎记
+    ``basis_undetermined``，边界断言会退化成"全 not_provided"。
+
+    **但目标指标本身就是水分时不加**：解析器对同一指标只取首个出现
+    （行序确定），多写一行"水分 <= X"会把真正要断言的那个值顶掉——
+    实测这正是"边界断言全绿变全红"的原因。
+    """
+    lines = [
+        "%s %s" % ("测试粮A", "%s %s" % (category, life_stage)),
+        "原料组成：鸡肉、糙米",
+        "成分分析保证值：",
+    ]
+    if moisture is not None and target != FIELD_MOISTURE:
+        lines.append("%s <= %s%%" % (FIELD_MOISTURE, format_decimal(moisture)))
+    lines.append("%s %s %s%%" % (target, op, format_decimal(observed)))
+    lines.extend([
+        "净含量：2kg",
+        "生产企业：某合成宠物食品有限公司",
+        "生产日期：2026-01-01",
+        "保质期：18个月",
+    ])
+    return "\n".join(lines) + "\n"
+
+
+def _boundary_moisture(rules) -> Decimal:
+    """边界用例标示的水分（**夹具数据**，与规则包无关）。
+
+    与 ``cases.SYNTHETIC_MOISTURE`` 同一口径：干基限值要有换算依据，
+    标签上就得有水分。它不是任何标准里的限值，故不是政策数值。
+    """
+    from .cases import SYNTHETIC_MOISTURE
+
+    return SYNTHETIC_MOISTURE
+
+
+def _declared_from_dry(observed: Decimal, basis: str,
+                       moisture: Optional[Decimal]) -> Decimal:
+    """干基观测值 → 该标签应当标示的 as-fed 值（非干基规则原样返回）。"""
+    if basis != BASIS_DRY_MATTER or moisture is None:
+        return observed
+    return observed * (Decimal(100) - moisture) / Decimal(100)
 
 
 def _verdict_of(check, rule_id: str) -> Optional[str]:

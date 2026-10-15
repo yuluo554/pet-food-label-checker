@@ -4,22 +4,22 @@
       "note": "抽样覆盖、非逐因素穷举（M4 回填采样数与清单）",
       "sample_list": [],
       "sampled_in_truth": null,
-      "total_rules": 0,
-      "verified_rules": 0
+      "total_rules": 5,
+      "verified_rules": 5
     },
     "label": {
       "note": "抽样覆盖、非逐因素穷举（M4 回填采样数与清单）",
       "sample_list": [],
       "sampled_in_truth": null,
-      "total_rules": 0,
-      "verified_rules": 0
+      "total_rules": 8,
+      "verified_rules": 8
     },
     "nutrition": {
       "note": "抽样覆盖、非逐因素穷举（M4 回填采样数与清单）",
       "sample_list": [],
       "sampled_in_truth": null,
-      "total_rules": 0,
-      "verified_rules": 0
+      "total_rules": 32,
+      "verified_rules": 30
     }
   },
   "files": {
@@ -35,8 +35,8 @@
       "doc_no": "GB/T 31216—2014",
       "doc_title": "全价宠物食品 犬粮",
       "issuer": "国家质量监督检验检疫总局 / 国家标准化管理委员会",
-      "sha256": "",
-      "url": "https://std.samr.gov.cn/"
+      "sha256": "b5bc0c7deae073e8ab492795e8d78a455eebebff3fe9285699c7138aebf3fcd3",
+      "url": "https://openstd.samr.gov.cn/bzgk/gb/newGbInfo?hcno=A8758F9C4633B2CCBEE9C82CC3F4A4D1"
     },
     {
       "captured_at": "2026-10-15",
@@ -44,8 +44,8 @@
       "doc_no": "GB/T 31217—2014",
       "doc_title": "全价宠物食品 猫粮",
       "issuer": "国家质量监督检验检疫总局 / 国家标准化管理委员会",
-      "sha256": "",
-      "url": "https://std.samr.gov.cn/"
+      "sha256": "6e98950fa294790d7d02b04dc4b70b589b2147696ecaac1c40adf6bca71628b5",
+      "url": "https://openstd.samr.gov.cn/bzgk/gb/newGbInfo?hcno=9496ABE283E8EB1FF58DF961B2DBAC9B"
     },
     {
       "captured_at": "2026-10-15",
@@ -62,8 +62,8 @@
       "doc_no": "农业农村部公告第20号 附件3",
       "doc_title": "宠物饲料标签规定（农业农村部公告第20号 附件3）",
       "issuer": "农业农村部",
-      "sha256": "",
-      "url": "https://law.foodmate.net/show-194580.html"
+      "sha256": "9a2a57a51b4e5a7a4a83cab109dd12b4d4ecc4d12a57c1dcf3738bab5b0a83ea",
+      "url": "https://faolex.fao.org/docs/pdf/chn176389.pdf"
     },
     {
       "captured_at": "2026-10-15",

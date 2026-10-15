@@ -33,12 +33,14 @@ REASON_NOT_FOUND = "not_found"              #: 文本里确实没有该字段
 REASON_MAPPING_UNCERTAIN = "mapping_uncertain"  #: 歧义：可能指多个参数，绝不猜
 REASON_STRUCTURE_BROKEN = "structure_broken"    #: 文本结构损坏，无法切分
 REASON_OUT_OF_RANGE = "out_of_range"            #: 抽到数值但超出合法范围，丢弃
+REASON_BASIS_UNDETERMINED = "basis_undetermined"  #: 限值与观测值基准不同且缺换算所需字段
 
 REASONS = (
     REASON_NOT_FOUND,
     REASON_MAPPING_UNCERTAIN,
     REASON_STRUCTURE_BROKEN,
     REASON_OUT_OF_RANGE,
+    REASON_BASIS_UNDETERMINED,
 )
 
 #: 判定结论（三态 + 两种非结论，见 plan/03 D1）
@@ -79,6 +81,15 @@ STATUS_PENDING = "pending"
 #: 义务类型（见 plan/03 D1 分栏纪律）
 EFFECT_OBLIGATION = "obligation"      #: 无条件义务——缺失记不符合
 EFFECT_CONDITIONAL = "conditional"    #: 条件触发（如"监管部门可以要求"）——不计入频次
+
+#: 限值的计量基准（见 plan/07 决策记录 M1 条）
+#: GB/T 31216/31217 的理化指标表头写明"指标（以干物质计）/%"，而标签上标示的
+#: 保证值是按标示状态（as-fed）给的——两者**不同基准，不能直接比**。
+BASIS_AS_FED = "as_fed"                #: 按标示状态计（标签保证值的默认基准）
+BASIS_DRY_MATTER = "dry_matter"        #: 以干物质计（国标理化指标表的基准）
+
+#: 干基换算所需的字段名（标签应当标示水分，见规定附录 4）
+FIELD_MOISTURE = "水分"
 
 
 # --------------------------------------------------------------------------
@@ -282,12 +293,32 @@ class LabelCard:
 def _jsonable(value: Any) -> Any:
     """把值转成可确定性序列化的形式（Decimal → str 保精度）。"""
     if isinstance(value, Decimal):
-        return str(value)
+        return format_decimal(value)
     if isinstance(value, dict):
         return {k: _jsonable(v) for k, v in sorted(value.items())}
     if isinstance(value, (list, tuple)):
         return [_jsonable(v) for v in value]
     return value
+
+
+def format_decimal(value: Decimal) -> str:
+    """把 ``Decimal`` 渲染成**非科学计数法**文本，并去掉无意义的尾随零。
+
+    ``Decimal("30.0").normalize()`` 得到 ``Decimal("3E+1")``——``str()`` 出来就是
+    ``"3E+1"``。这个形态有三个害处，每个都实测踩过：
+
+      * 报告里出现 ``3E+1 %``，人读不出来；
+      * 基准把限值写回标签文本时产出 ``粗蛋白 >= 3E+1%``，再解析回 ``3``，
+        即"生成器写的"与"解析器读的"不是同一个数；
+      * 禁用 token 实算会把 ``3E+1`` 当成一个 token，而它在任何源码里都不可能
+        出现——门禁变成空转。
+
+    故一律走 ``format(value, "f")``（定点表示，无 E 记号）再裁尾零。
+    """
+    text = format(value, "f")
+    if "." in text:
+        text = text.rstrip("0").rstrip(".")
+    return text or "0"
 
 
 def compute_card_id(raw_text: str) -> str:

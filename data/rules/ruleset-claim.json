@@ -1,5 +1,120 @@
 {
   "dimension": "claim",
-  "rules": [],
+  "rules": [
+    {
+      "anchor": {
+        "captured_at": "2026-10-15",
+        "clause": "第二十条",
+        "doc_id": "MOA-20-2018-ANNEX3",
+        "doc_title": "宠物饲料标签规定（农业农村部公告第20号 附件3）",
+        "excerpt": "如宠物饲料产品使用的所有饲料原料和饲料添加剂均来自未经加工、非化学工艺加工",
+        "sha256": "7ee619eef87733fe82ec424d46f881855627ec404002b479ffa237cffae9ecb3",
+        "source_url": "https://faolex.fao.org/docs/pdf/chn176389.pdf"
+      },
+      "clause_status": "verified",
+      "dimension": "claim",
+      "effect": "obligation",
+      "kind": "claim_support",
+      "note": "特性声称“天然的/天然粮”的前提是全部原料与添加剂来源受限定，且如添加化学合成维生素/氨基酸/矿物质须同时标示；核查其支撑信息是否齐备。",
+      "required_support": [
+        "ingredients",
+        "additives"
+      ],
+      "rule_id": "CLAIM-001",
+      "status": "verified",
+      "target": "天然"
+    },
+    {
+      "anchor": {
+        "captured_at": "2026-10-15",
+        "clause": "第二十条",
+        "doc_id": "MOA-20-2018-ANNEX3",
+        "doc_title": "宠物饲料标签规定（农业农村部公告第20号 附件3）",
+        "excerpt": "声称应当使用“无XX”或者“不含XX”",
+        "sha256": "7ee619eef87733fe82ec424d46f881855627ec404002b479ffa237cffae9ecb3",
+        "source_url": "https://faolex.fao.org/docs/pdf/chn176389.pdf"
+      },
+      "clause_status": "verified",
+      "dimension": "claim",
+      "effect": "obligation",
+      "kind": "claim_support",
+      "note": "不含有声称须在原料组成中可核；除饲料原料与饲料添加剂外不得对物质作不含有声称。",
+      "required_support": [
+        "ingredients"
+      ],
+      "rule_id": "CLAIM-002",
+      "status": "verified",
+      "target": "无谷"
+    },
+    {
+      "anchor": {
+        "captured_at": "2026-10-15",
+        "clause": "第二十条",
+        "doc_id": "MOA-20-2018-ANNEX3",
+        "doc_title": "宠物饲料标签规定（农业农村部公告第20号 附件3）",
+        "excerpt": "除饲料原料和饲料添加剂外，不得对其他任何物质进行不含有声称。",
+        "sha256": "7ee619eef87733fe82ec424d46f881855627ec404002b479ffa237cffae9ecb3",
+        "source_url": "https://faolex.fao.org/docs/pdf/chn176389.pdf"
+      },
+      "clause_status": "verified",
+      "dimension": "claim",
+      "effect": "obligation",
+      "kind": "claim_support",
+      "note": "“无添加”属不含有声称，须以原料组成与添加剂组成的标示为支撑。",
+      "required_support": [
+        "ingredients",
+        "additives"
+      ],
+      "rule_id": "CLAIM-003",
+      "status": "verified",
+      "target": "无添加"
+    },
+    {
+      "anchor": {
+        "captured_at": "2026-10-15",
+        "clause": "第二十条",
+        "doc_id": "MOA-20-2018-ANNEX3",
+        "doc_title": "宠物饲料标签规定（农业农村部公告第20号 附件3）",
+        "excerpt": "如宠物饲料产品中添加的维生素、氨基酸、矿物质微量元素是化学合成的",
+        "sha256": "7ee619eef87733fe82ec424d46f881855627ec404002b479ffa237cffae9ecb3",
+        "source_url": "https://faolex.fao.org/docs/pdf/chn176389.pdf"
+      },
+      "clause_status": "verified",
+      "dimension": "claim",
+      "effect": "obligation",
+      "kind": "claim_support",
+      "note": "“纯天然”与“天然的”同属特性声称；添加化学合成营养素时须同时标示。",
+      "required_support": [
+        "ingredients",
+        "additives"
+      ],
+      "rule_id": "CLAIM-004",
+      "status": "verified",
+      "target": "纯天然"
+    },
+    {
+      "anchor": {
+        "captured_at": "2026-10-15",
+        "clause": "第二十条",
+        "doc_id": "MOA-20-2018-ANNEX3",
+        "doc_title": "宠物饲料标签规定（农业农村部公告第20号 附件3）",
+        "excerpt": "且不含有氯化钠、防腐剂或者其他饲料添加剂",
+        "sha256": "7ee619eef87733fe82ec424d46f881855627ec404002b479ffa237cffae9ecb3",
+        "source_url": "https://faolex.fao.org/docs/pdf/chn176389.pdf"
+      },
+      "clause_status": "verified",
+      "dimension": "claim",
+      "effect": "obligation",
+      "kind": "claim_support",
+      "note": "特性声称“新鲜的/鲜”以原料未作蒸煮干燥冷冻水解等处理且不含氯化钠、防腐剂或其他饲料添加剂为前提，核查支撑信息是否齐备。",
+      "required_support": [
+        "ingredients",
+        "additives"
+      ],
+      "rule_id": "CLAIM-005",
+      "status": "verified",
+      "target": "鲜肉"
+    }
+  ],
   "ruleset_version": "2026.1"
 }

@@ -35,17 +35,23 @@ ROOT = Path(__file__).resolve().parent.parent
 OK_MARKER = "SMOKE_CLI_OK"
 
 #: (说明, argv, 期望退出码, 期望退出码的语义来源)
-#: M0 骨架态：规则包为空 → diagnostics 返回 1（"有 pending/零生效"的既定语义）
-#: check 对空规则包返回 0（无不符合检出）；bench 因空分母返回 1。
+#:
+#: **M1 末态**：规则包已录入并逐条核对（43 条 verified / 2 条 pending）。
+#: 故这里断言的是"M1 真实数据下的契约"，M0 骨架态的期望（空规则 → diagnostics 1、
+#: bench 1）已随数据录入而失效——**期望随数据一起演进，不写死成恒真的空断言**。
 CASES: List[Tuple[str, List[str], int, str]] = [
-    ("diagnostics（骨架态零生效规则 → exit 1）",
-     ["diagnostics"], 1, "plan/06 M0：diagnostics 零生效规则时 exit 1"),
+    ("diagnostics（已录入规则 → exit 0）",
+     ["diagnostics"], 0, "plan/06 M1：规则生效后 diagnostics 正常返回"),
     ("check 合规样例（无不符合 → exit 0）",
      ["check", "data/samples/label-demo-ok.txt"], 0, "README：0 = 无不符合"),
-    ("check 缺项样例（骨架态无规则 → 无检出）",
-     ["check", "data/samples/label-demo-missing.txt"], 0, "README：0 = 无不符合"),
-    ("bench（空分母 → exit 1）",
-     ["bench"], 1, "plan/03 D12：未启用套件不冒充通过"),
+    ("check 缺项样例（检出不符合 → exit 1）",
+     ["check", "data/samples/label-demo-missing.txt"], 1, "README：1 = 检出不符合"),
+    ("check 越限样例（检出不符合 → exit 1）",
+     ["check", "data/samples/label-demo-overlimit.txt"], 1, "README：1 = 检出不符合"),
+    ("check 宣称无支撑样例（检出不符合 → exit 1）",
+     ["check", "data/samples/label-demo-claim.txt"], 1, "README：1 = 检出不符合"),
+    ("bench（四套件达标 → exit 0）",
+     ["bench"], 0, "plan/03 D12：门槛达标才返回 0"),
     ("selftest（源码态不判 FAIL → exit 0）",
      ["selftest", "--out", ".tmp/smoke-selftest.json"], 0, "plan/03 D21"),
     ("check 不存在的文件（用法错误 → exit 2）",

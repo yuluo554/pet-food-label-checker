@@ -22,13 +22,19 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
 from ..model import (
+    BASIS_AS_FED,
+    BASIS_DRY_MATTER,
     DIMENSIONS,
     EFFECT_CONDITIONAL,
     EFFECT_OBLIGATION,
     STATUS_PENDING,
     STATUS_VERIFIED,
     Anchor,
+    format_decimal,
 )
+
+#: 限值计量基准白名单
+BASES = (BASIS_AS_FED, BASIS_DRY_MATTER)
 
 # --------------------------------------------------------------------------
 # 判定方式
@@ -78,6 +84,7 @@ class Rule:
     op: Optional[str] = None
     value: Optional[Decimal] = None
     unit: Optional[str] = None
+    basis: str = BASIS_AS_FED
     applies_if: Dict[str, Sequence[str]] = field(default_factory=dict)
     required_support: Sequence[str] = ()
     status: str = STATUS_PENDING
@@ -123,8 +130,9 @@ class Rule:
             "target": self.target,
             "effect": self.effect,
             "op": self.op,
-            "value": None if self.value is None else str(self.value),
+            "value": None if self.value is None else format_decimal(self.value),
             "unit": self.unit,
+            "basis": self.basis,
             "applies_if": {k: list(v) for k, v in sorted(self.applies_if.items())},
             "required_support": list(self.required_support),
             "status": self.status,
@@ -184,6 +192,10 @@ def _rule_from_dict(raw: Dict[str, Any], dimension: str) -> Rule:
     if effect not in (EFFECT_OBLIGATION, EFFECT_CONDITIONAL):
         raise RulePackError("规则 %s 的 effect=%r 不受支持" % (rule_id, effect))
 
+    basis = str(raw.get("basis", BASIS_AS_FED))
+    if basis not in BASES:
+        raise RulePackError("规则 %s 的 basis=%r 不受支持" % (rule_id, basis))
+
     return Rule(
         rule_id=rule_id,
         dimension=str(raw.get("dimension", dimension)),
@@ -193,6 +205,7 @@ def _rule_from_dict(raw: Dict[str, Any], dimension: str) -> Rule:
         op=None if op is None else str(op),
         value=value,
         unit=None if raw.get("unit") is None else str(raw["unit"]),
+        basis=basis,
         applies_if=applies_if,
         required_support=tuple(str(x) for x in (raw.get("required_support") or ())),
         status=str(raw.get("status", STATUS_PENDING)),
@@ -304,9 +317,29 @@ def pending_rule_ids(rules_dir: Path) -> List[str]:
 # 零政策字面量门禁：token 运行时实算
 # --------------------------------------------------------------------------
 
-#: 数值豁免下界：小于此值的数视为精度约定/结构性常数，不作为禁用 token。
-#: 豁免口径写死在此处（见 plan/03 D5），且**豁免的是"数值大小"不是"文件"**。
-NUMERIC_TOKEN_EXEMPT_BELOW = 100
+#: 数值豁免上界：**整数形态**且绝对值小于此值 → 视为结构性常数（下标 / 计数 /
+#: 短文本长度），不作为禁用 token。
+#:
+#: **非整数一律不豁免**——这条是 M1 的实测勘误。M0 把豁免写成"绝对值 < 100"，
+#: 那时规则包是空的、看不出问题；M1 录入真实国标后，全部百分比限值都落在
+#: 一百以内的区间，**被该口径整包放过**，``banned_numeric_tokens`` 返回空集——
+#: 门禁完全空转（"假门"是本项目明令避免的失效模式）。
+#: 本项目的政策数值天然是小于一百的百分数，"按大小豁免"与"零政策字面量"
+#: 这个目标在数学上不相容；正确的判别量是**这个数出现在哪里**（见下方定义点），
+#: 而不是它多大。
+NUMERIC_TOKEN_EXEMPT_INTEGER_BELOW = 20
+
+#: 政策数值的**唯一定义处**：转录器把数值带进系统（且逐条断言原文逐字包含）。
+#: 它持有字面量是**定义**不是"抄进代码的第二份真相"——规则包由它生成，
+#: 下游一律从规则包读。门禁扫其余全部源码，只对这一处按文件名放行。
+POLICY_VALUE_DEFINITION_SITE = "transcribe_clauses.py"
+
+
+def _exempt_from_tokens(value: Decimal) -> bool:
+    """该数值是否作为"结构性常数"豁免出禁用 token 集。"""
+    if value == value.to_integral_value():
+        return abs(value) < NUMERIC_TOKEN_EXEMPT_INTEGER_BELOW
+    return False
 
 
 def banned_numeric_tokens(rules_dir: Path) -> List[str]:
@@ -322,11 +355,10 @@ def banned_numeric_tokens(rules_dir: Path) -> List[str]:
             if rule.value is None:
                 continue
             value = rule.value
-            if abs(value) < NUMERIC_TOKEN_EXEMPT_BELOW:
+            if _exempt_from_tokens(value):
                 continue
-            text = str(value.normalize())
-            tokens.add(text)
-            # 整数形态也收编（"22.0" 与 "22" 是同一个政策数值的两种写法）
+            tokens.add(format_decimal(value))
+            # 整数形态也收编（同一个政策数值的两种写法必须都进 token 集）
             if value == value.to_integral_value():
                 tokens.add(str(int(value)))
     return sorted(tokens)
@@ -336,7 +368,7 @@ def scan_source_for_tokens(source_text: str, tokens: Iterable[str]) -> List[Tupl
     """在源码文本里扫禁用 token，返回 ``[(token, 行号)]``。
 
     词边界用 ``(?<![0-9A-Za-z_.])`` / ``(?![0-9A-Za-z_.])``——避免把
-    ``220`` 里的 ``22`` 当命中（子串误报是这类门禁最常见的失效方式）。
+    更长数字里的前缀当命中（子串误报是这类门禁最常见的失效方式）。
     """
     hits: List[Tuple[str, int]] = []
     lines = source_text.splitlines()
