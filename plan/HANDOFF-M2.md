@@ -173,7 +173,7 @@ print('claims     =', c.claim_names())          # 期望：不含产品类型词
 
 | 坑 | 实测事实与处置 |
 |---|---|
-| Python 通道 | `py -0p` → **3.8-64**（`C:\Users\<USER>\AppData\Local\Programs\Python\Python38`）与 **3.12-64**。项目底线 3.8；所有一次性脚本只能用 **3.8 语法**。发布构建固定用 `py -3.12`（PyInstaller 6.x） |
+| Python 通道 | `py -0p` → **3.8-64** 与 **3.12-64** 两条（各自位于本机 Python 安装目录下）。项目底线 3.8；所有一次性脚本只能用 **3.8 语法**。发布构建固定用 `py -3.12`（PyInstaller 6.x） |
 | **`Path.write_text(newline=)` 是 3.10+ 参数** | 3.8 上直接 `TypeError`。本项目**已三次踩中** → 一律用 `open(..., newline="\n")` 或 `write_bytes` |
 | 中文控制台编码 | 跑命令一律 `py -X utf8`；入口已加 `_ensure_utf8_stdio()` 探针 |
 | **Git Bash `/tmp` 与 Windows Python 路径不通** | `curl` 落到 `/tmp/x.html` 后 Windows Python 读不到 → 临时文件一律用**工作区相对路径** `.tmp/` |

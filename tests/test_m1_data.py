@@ -274,8 +274,48 @@ def test_nutrition_rules_declare_dry_matter_basis():
 
 
 # --------------------------------------------------------------------------
-# 门禁五：数值渲染不得出现科学计数法
+# 门禁六：脱敏审计（含 M1 新增的原文快照豁免）
 # --------------------------------------------------------------------------
+
+
+def test_desensitize_audit_passes_on_tracked_files():
+    """入库文件不得有未处置的 HARD 命中（`--tracked` 必须 OK）。
+
+    变异验证：往任一源码/文档里塞一个本机用户名路径 → 本测试必须变红。
+    """
+    import subprocess
+
+    proc = subprocess.run(
+        [sys.executable, "-X", "utf8", str(TOOLS / "audit_desensitize.py"), "--tracked"],
+        cwd=str(ROOT), stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+        encoding="utf-8", errors="replace",
+    )
+    assert "DESSENSITIZE_AUDIT_OK" in (proc.stdout or ""), (
+        "脱敏审计未通过：\n%s" % (proc.stdout or "")[-800:])
+
+
+def test_snapshot_email_exemption_is_bound_to_file_and_rule():
+    """豁免**绑定到具体文件 + 具体规则名**，不是"这个文件全放过"。
+
+    原文快照里出现的是**转载站点自己的公开联系邮箱**（第三方文档内容），
+    快照纪律要求逐字保真，故按该文件 + `generic_email` 规则豁免。
+    本测试断言豁免边界：同样的邮箱换个文件仍会被判 REVIEW。
+    """
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "audit_probe", TOOLS / "audit_desensitize.py")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules["audit_probe"] = module
+    spec.loader.exec_module(module)
+
+    exempt_path = "data/knowledge/raw/moa-20-2018-annex3/reprint-feedchina.txt"
+    assert module._is_exempt(exempt_path, "generic_email"), "快照豁免未生效"
+    # 同一文件的其他规则**不受**豁免
+    assert not module._is_exempt(exempt_path, "long_hex"), "豁免被过度放宽到其他规则"
+    # 同样内容换个文件 → 必须照常命中（证明豁免不是"全放过"）
+    assert not module._is_exempt("src/pflc/engine/__init__.py", "generic_email"), \
+        "豁免被过度放宽到其他文件 = 假豁免"
 
 
 def test_decimal_rendering_has_no_scientific_notation():
