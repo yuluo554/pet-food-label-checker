@@ -147,6 +147,7 @@
 | **`Decimal.normalize()` 产出 E 记号** | `Decimal("30").normalize()` → `Decimal("3E+1")`。一律走 `format_decimal()` |
 | **变异验证要留对照组** | 只看到"改坏了测试还绿"不能下结论——要同时改一个**已知有探活的同类**（如 `boundary`）确认手法有效。**但先确认通道可用**（见上条裸 `python` 坑：本次两次"没生效"其实是执行通道坏了） |
 | **判据别写成"文件里出现过这串字"** | M4 实测：CI 门子串判据放过"整段注释掉"；README 门全文件子串判据放过"手改数值"。判据要落**结构位置**（解析出的 run 步骤 / 小节内**行级**核对） |
+| 🔴 **`--tracked` 审计看不到"尚未 `git add` 的新文件"** | **本棒实测并自己踩中**：`scan_tracked()` 按 `git ls-files` 枚举，故**新建但未暂存**的文件对 `--tracked` **完全不可见**。本棒把 `which python` 的实测路径（含本机用户名）写进**新建的** `plan/HANDOFF-M5.md`，预提交前跑了三次 `--tracked` **全绿**——`git add` 之后才报 `user_name_signature HARD 1`。**处置**：① 涉及"新写文档/新加文件"的收棒，**必须先 `git add` 再跑 `--tracked`**（或跑 `--all` 自查）；② 本次是"提交后跑全量测试"抓到的（`test_desensitize_audit_passes_on_tracked_files` 会 subprocess 跑 `--tracked`）。**这一条与上面"假门"是同一族：绿不等于验过了**。 |
 
 ---
 
