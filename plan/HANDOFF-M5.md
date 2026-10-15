@@ -129,7 +129,7 @@
 
 | 坑 | 实测事实与处置 |
 |---|---|
-| 🔴 **裸 `python` 是 Windows Store 桩，静默不执行** | **本棒实测**：`which python` → `/c/Users/<USER>/AppData/Local/Microsoft/WindowsApps/python`；`python -c "print(1)"` → **exit 49，无任何输出**，heredoc 同样（`echo 'print(1)' \| python -` 也 49）。**危害**：用它跑变异脚本会"成功返回"却什么都没改——本棒两次变异验证因此**看起来像是"改坏了测试还绿"**（险些误判成假门）。**处置**：一律用 `py -X utf8`（或用 `python -m pip` 那种 README 明示的形态，但执行脚本一律 `py`）。**变异验证前先用 `py -c "print(1)"` 确认通道可用**。 |
+| 🔴 **裸 `python` 是 Windows Store 桩，静默不执行** | **本棒实测**：`which python` → `.../AppData/Local/Microsoft/WindowsApps/python`（Windows 应用执行别名桩）；`python -c "print(1)"` → **exit 49，无任何输出**，heredoc 同样（`echo 'print(1)' \| python -` 也 49）。**危害**：用它跑变异脚本会"成功返回"却什么都没改——本棒两次变异验证因此**看起来像是"改坏了测试还绿"**（险些误判成假门）。**处置**：一律用 `py -X utf8`（或用 `python -m pip` 那种 README 明示的形态，但执行脚本一律 `py`）。**变异验证前先用 `py -c "print(1)"` 确认通道可用**。 |
 | Python 通道 | `py -0p` → **3.8-64** 与 **3.12-64** 两条。项目底线 3.8；一次性脚本只能用 **3.8 语法**。发布构建固定 `py -3.12`（PyInstaller **6.22.3** 已装） |
 | **`Path.write_text(newline=)` 是 3.10+ 参数** | 3.8 上直接 `TypeError`。**已踩中三次** → 一律 `open(..., newline="\n")` 或 `write_bytes` |
 | **`py -X utf8 -m pytest -q` 偶发 access violation** | 3.8 全量收集时**偶发**崩在 pytest 断言重写器。处置：**先清 `__pycache__` + `.pytest_cache` 再跑**；单次崩了别急着改代码，复跑确认 |
