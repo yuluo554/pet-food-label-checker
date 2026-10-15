@@ -124,6 +124,35 @@ git config user.email
 noreply 正是审计器 `_is_exempt_email()` 已豁免的目标形态——**审计口径与修法同向**，
 不是"改完再给审计开豁免"。
 
+### 本棒自己引入又修掉的一处泄露（第二次重写）
+
+**经过**：写本节初版时，把重写**前**的私人邮箱**词面**直接抄进了本文件——
+**清它的动作本身又把它公开了一次**。该词面随 `plan/RELEASE-M6.md` 一起被 commit 并 push 到
+公开仓库。文档回填后跑 `--tracked` 审计，被 `generic_email/REVIEW` 抓出。
+
+**处置**：
+
+1. 把本文件的词面改为掩码描述（本节现在这个样子）；
+2. 再跑一次 `git filter-repo --replace-text`（表达式表从 git 历史实算词面，不写死）
+   把该词面从**全历史**清掉；
+3. `git push --force origin main` + `git push --force origin v0.1.0`
+   （`filter-repo` 会移除 remote，需重新 `git remote add`——这是它的既有行为）。
+
+**force-push 后的残余对象（如实登记，不当作"已修"）**：旧提交已不在任何 ref 上，
+但 GitHub 仍保留**不可达对象**——按 SHA 直连**仍能匿名读到**该 blob（实测：
+`GET /repos/.../contents/plan/RELEASE-M6.md?ref=<旧SHA>` 返回 200 且内容含该词面）。
+删仓重建可清除，但需要 `delete_repo` 权限（本机 token 无此 scope）。
+
+**该残余是否构成泄露面——实测判定为"非增量"**：同一邮箱**早已公开**在该账号的**其他公开仓库**
+的提交元数据里（匿名 API 实测：`structural-strengthening-checker` / `dsh-prompt-polisher` /
+`dsh-pipeline` / `siteguard` 四个公开仓的作者邮箱均为它）。故本仓库的这个残余
+**不新增任何暴露面**，删仓重建的隐私收益为零。
+
+**结论**：残余**存在**，但**不增量**。要彻底清除需 `delete_repo` 权限或联系 GitHub Support。
+本棒选择"如实登记 + 把词面从可达历史与该文件清掉 + 后续不再复写词面"，
+而不是"删仓重建"——后者在当前权限下做不到，且收益为零。
+**教训（值得写进反模式清单）：清理敏感信息时，留档里绝不能复写被清理的词面本身。**
+
 ---
 
 ## 四、转公开三清（破坏性操作，执行时机与前置）

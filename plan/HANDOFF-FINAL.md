@@ -14,7 +14,7 @@
 | 公开仓库 | <https://github.com/yuluo554/pet-food-label-checker> |
 | 可见性 | **PUBLIC**（三清完成后才切） |
 | Release | `v0.1.0` · <https://github.com/yuluo554/pet-food-label-checker/releases/tag/v0.1.0> |
-| 发布基线提交 | `f6503d1`（= tag `v0.1.0` 指向的提交） |
+| 发布基线提交 | `ef76135`（= tag `v0.1.0` 指向的提交）<br>**注**：本棒做过**两次**历史重写（见 §四），早期提交的 SHA 已变；以本节为准 |
 | 提交总数 | 17（`git rev-list --count HEAD`） |
 | 附件（ASCII 名） | `pflc-gui-windows-x64-0.1.0.zip`（165 文件 / 110.9 MB）<br>`pflc-cli-windows-x64-0.1.0.zip`（23 文件 / 16.5 MB） |
 | sha256 留档 | `docs/DIST-sha256-M6.txt`（zip sha256 + 文件数 + **树 sha256**） |
@@ -38,7 +38,7 @@ d9b63eab69a06155bbe6069ed9c6d678096bf8e8d56fdf28a8825748d8f7381d  pflc-cli-windo
 | 基准 | 四套件全达标，期望锚定冻结真值库（`truth_source=frozen`） | `py -X utf8 -m pflc.cli bench` |
 | 守门标记 | `TRANSCRIBE_OK` · `FROZEN_RULESET_OK` · `FROZEN_CASES_OK` · `FROZEN_SAMPLES_OK` · `DESSENSITIZE_AUDIT_OK` · `SMOKE_CLI_OK` · **`RELEASE_PACK_OK`** · **`VERIFY_FROZEN_OK`**（两树） · **`DEMO_ASSETS_OK`** | 见 §三 复跑手册 |
 | 冻结产物 | `dist/pflc/`（GUI 110.9 MB）+ `dist/pflc-cli-dist/`（CLI 16.5 MB），两树均 `VERIFY_FROZEN_OK` | 同上 |
-| CI | **7/7 全绿**（run `38705277036`，commit `f6503d1`） | `gh run list` |
+| CI | **7/7 全绿**（当前基线 `ef76135`：run `38707310951` / `38707331035`） | `gh run list` |
 | 脱敏 | `--tracked` HARD 0 / REVIEW 0；`--all` **HARD 0** | 见 §三 |
 
 ---
@@ -125,13 +125,25 @@ py -X utf8 tools/gen_samples.py --force          # 重生成夹具
 | 历史重写 | `tools/rewrite_history_m6.py --apply` → **HARD 3→0**；两处本机用户名路径 + 全部提交邮箱（→ GitHub noreply） |
 | 建远端 | 先 **private**（`gh repo create --private`），避免首跑红留进公开历史 |
 | 首推 CI | 首跑 **8 job / 5 绿 3 红**（run `38702307047`） |
-| 修缺陷 | 3 个真缺陷（全部"本机绿、CI 红"），修完复跑 **7/7 全绿**（run `38705277036`） |
+| 修缺陷 | 3 个真缺陷（全部"本机绿、CI 红"），修完复跑 **7/7 全绿** |
 | 三清收尾 | 删失败 run `38702307047` |
 | Release | tag `v0.1.0` + Release + 两个 zip 附件 |
 | topics | 8 个，已回读 |
 | 真下载复核 | sha256 一致 + 中立目录解压 + 冻结态自检 + CLI 五连 → 全过 |
 | 切 public | 三清完成后才切 |
 | 发布后 clone | 公开 clone：历史 `--all` **HARD 0**、**287 passed**、`DEMO_ASSETS_OK` |
+| **第二次历史重写（本棒自己引入的泄露）** | 写 §三「提交元数据邮箱检查」时，把重写**前**的私人邮箱**词面**直接抄进了 `plan/RELEASE-M6.md`——**清它的动作本身又把它公开了一次**。由 `--tracked` 审计在文档回填后抓出（`generic_email/REVIEW`）。处置：改掩码描述 + 再跑一次 `filter-repo` 把该词面从全历史清掉 + force-push（`main` 与 `v0.1.0`） |
+
+**关于"force-push 后残余对象"的实测结论（诚实登记）**：force-push 后旧提交已不在任何 ref 上，
+但 GitHub 仍保留**不可达对象**，按 SHA 直连**仍能匿名读到**该 blob（本棒实测：
+`contents?ref=<旧SHA>` 返回 200 且含词面）。删仓重建可清除，但需要 `delete_repo` 权限
+（本机 token 无此 scope）。
+
+**该残余是否构成泄露面——实测判定为"非增量"**：同一邮箱**早已公开**在该账号的其他公开仓库
+的提交元数据里（实测 `structural-strengthening-checker` / `dsh-prompt-polisher` / `dsh-pipeline` / `siteguard`
+四个公开仓的作者邮箱均为它，匿名 API 可读）。故本仓库的这个残余**不新增任何暴露面**，
+删仓重建的隐私收益为零。**如实登记，不当作"已修"**：结论是"残余存在，但不增量"，
+而非"彻底清除"。真要彻底清除需 `delete_repo` 权限或联系 GitHub Support。
 
 **首跑 3 个缺陷的根因**（详细版见 `plan/RELEASE-M6.md` §五）：
 
