@@ -165,6 +165,66 @@ def test_claim_present_without_support_is_noncompliant(rules_dir):
 
 
 # --------------------------------------------------------------------------
+# 分派表结构性断言（三类 kind 齐备）
+# --------------------------------------------------------------------------
+
+
+def test_every_kind_has_a_distinct_dispatch_implementation(rules_dir, ok_label_text):
+    """**结构性断言**：三类 kind 各自都有分派实现，且三者互不相同。
+
+    防的失效模式：新增/改名一个 kind 常量却忘了在 ``_JUDGES`` 里实现——
+    该 kind 的规则一旦生效就在判定路径上抛 ``EngineError``；更隐蔽的是
+    常量表与分派表各自漂移（或复制粘贴让两个 kind 指向同一函数），
+    此时判定"跑得通"但语义已经错了。
+
+    断言**三类 kind 都真的被跑过一遍**（而非只查键存在）——否则夹具一旦
+    不再覆盖某个 kind，这条门就会在"键齐备"的假象下空转。
+    """
+    from pflc.engine import _JUDGES, judge_dimension
+    from pflc.rules import KINDS, load_pack
+
+    assert set(_JUDGES) == set(KINDS), (
+        "分派表与 kind 常量表不一致：缺 %s / 多 %s"
+        % (sorted(set(KINDS) - set(_JUDGES)), sorted(set(_JUDGES) - set(KINDS)))
+    )
+    assert all(callable(fn) for fn in _JUDGES.values())
+    # 两个 kind 指向同一实现 = 复制粘贴错误（语义静默走偏）
+    assert len(set(_JUDGES.values())) == len(KINDS)
+
+    card = parse_label(ok_label_text)
+    exercised = set()
+    for dim in (DIM_LABEL, DIM_NUTRITION, DIM_CLAIM):
+        pack = load_pack(dim, rules_dir)
+        judge_dimension(pack, card)  # 不抛 EngineError 即"有实现"
+        for rule in pack.effective():
+            if rule.applies_to(card.category_value(), card.life_stage_value()):
+                exercised.add(rule.kind)
+    assert exercised == set(KINDS), (
+        "夹具没有真的驱动全部 kind，本门会空转：缺 %s"
+        % sorted(set(KINDS) - exercised)
+    )
+
+
+def test_dispatch_guard_rejects_unimplemented_kind(rules_dir, ok_label_text,
+                                                   monkeypatch):
+    """**非空转自检**：从分派表摘掉一个 kind，判定路径必须报错。
+
+    只断言"键存在"是假门——分派表可以齐备而判定路径从不查它。
+    这里故意弄坏被测行为，确认上面那条断言真的锁住了运行路径。
+    """
+    from pflc import engine
+    from pflc.rules import KIND_PRESENCE, Rule, RulePack
+
+    monkeypatch.delitem(engine._JUDGES, KIND_PRESENCE)
+    rule = Rule(rule_id="X", dimension=DIM_LABEL, kind=KIND_PRESENCE,
+                target="product_name", status="verified",
+                clause_status="verified")
+    with pytest.raises(engine.EngineError):
+        engine.judge_dimension(RulePack(dimension=DIM_LABEL, rules=[rule]),
+                               parse_label(ok_label_text))
+
+
+# --------------------------------------------------------------------------
 # 维度排除与聚合
 # --------------------------------------------------------------------------
 

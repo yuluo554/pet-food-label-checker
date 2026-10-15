@@ -16,7 +16,7 @@
 | [04-模块详设.md](04-模块详设.md) | 统一中间表示、解析层、规则层、判定引擎、报告层、编排层、CLI、GUI、打包逐模块接口与语义 | ✅ M0 落盘 2026-10-15 |
 | [05-数据计划.md](05-数据计划.md) | 数据先行原则、data/ 结构、规则包冻结形态、合成基准真值语义、台账纪律、渠道实录 | ✅ M0 落盘 2026-10-15 |
 | [06-里程碑.md](06-里程碑.md) | M0–M6 逐里程碑目标/任务/DoD/风险降级、收尾固定顺序、可演示命令 | ✅ M0 落盘 2026-10-15 |
-| [07-交付对标与决策记录.md](07-交付对标与决策记录.md) | 提交材料与评分标准逐项对标、决策记录、**K1–K24 既定口径清单**、诚实口径、反模式清单 | ✅ M0 落盘 2026-10-15 |
+| [07-交付对标与决策记录.md](07-交付对标与决策记录.md) | 提交材料与评分标准逐项对标、决策记录、**K1–K28 既定口径清单**、诚实口径、反模式清单 | ✅ M0 落盘 2026-10-15（K25–K27 为 M2 新增；K28 为 M3 新增） |
 | [data/README.md](../data/README.md) | 数据台账：依据查证记录（三态+URL+基准日）、数据源可获取性、合成数据纪律 | ✅ 出题阶段落盘 2026-10-14，M0 扩充 |
 
 ## 决策记录
@@ -47,7 +47,7 @@
 | 强制标示项检查引擎 | 《宠物饲料标签规定》（**M1 已获取全文并核对**：FAO 库扫描件 + feed-china 转载交叉校验） | 标示项规则随包（条款锚点入包） | 合成标签基准逐项核验；结论挂条款锚点 | ✅ **8 条 verified** |
 | 营养限值判定引擎 | GB/T 31216—2014 / 31217—2014（**M1 已获取全文并核对**：瓦片精灵图旁路 + 逐格 OCR） | 版本化规则包随包（数值一处定义） | 按生命阶段逐项判定；合成标签真值对账 | ✅ **30 条 verified / 2 条 pending**（牛磺酸：限值随水分形态分支） |
 | 宣称用语核查引擎 | 《宠物饲料标签规定》限定用语条款（第二十条） | 宣称规则随包 | "天然/无谷"等宣称条件齐备性核查 | ✅ **5 条 verified**（引擎通路 M3 复核） |
-| 标签文本导入器 | 贴文本入口（确定性解析，无 LLM） | 核心层零第三方依赖 | 同一文本同一档案；缺失字段如实标 `未提供` | ⬜ M2 |
+| 标签文本导入器 | 贴文本入口（确定性解析，无 LLM） | 核心层零第三方依赖 | 同一文本同一档案；缺失字段如实标 `未提供` | ✅ **M2 完成**（FR-01 全覆盖，229 项测试） |
 | 合成标签基准 | 程序化生成 + 假品牌名白名单 | 基准零外部依赖、零 API | 一条命令复现；指标口径进 README | ⬜ M4 |
 | 旧版标签三态对照包 | 20 号 + 210 号公告过渡规则（✅ 素材成立） | 对照规则留扩展 | 旧版/新版/附加标签三态结论差异 | ⬜ 扩展 |
 | AAFCO 横向对照 | 人工整理 JSON + 逐条注来源（官方表付费 ⬜） | 扩展数据不入首期底座 | 每条注来源 | ⬜ 扩展 |
@@ -59,8 +59,8 @@
 |---|---|---|
 | M0 | 计划先行 + 可运行骨架（plan/ 00–07、工程骨架、核心层、测试、CI） | ✅ 2026-10-15（本地等价校验通过，未接远端，CI 待首推验证） |
 | M1 | **数据先行**：获取 GB/T 31216/31217 全文数值 + 标签规定条款逐条挂原文核对（未核对不得落库）+ 依据索引 + 台账 | ✅ **2026-10-15**（45 条规则：43 verified / 2 pending；四套件达标；本地等价校验通过，未接远端） |
-| M2 | 标签文本导入器：贴文本 → 结构化标签档案（缺失标 `未提供`，可复现） | ⬜ |
-| M3 | 规则引擎：强制标示项检查 + 营养限值判定（按生命阶段）+ 宣称用语核查，三态结论 + 条款锚点 | ⬜ |
+| M2 | 标签文本导入器：贴文本 → 结构化标签档案（缺失标 `未提供`，可复现） | ✅ **2026-10-15**（FR-01 全覆盖；229 项测试双解释器全绿；本地等价校验通过，未接远端） |
+| M3 | 规则引擎：强制标示项检查 + 营养限值判定（按生命阶段）+ 宣称用语核查，三态结论 + 条款锚点 | ✅ **2026-10-15**（三模块齐备 + 分派表结构性守门；231 项测试双解释器全绿；本地等价校验通过，未接远端） |
 | M4 | 合成标签基准：程序化生成合规/违规样例 + 植入真值 + 一条命令复现评测 | ⬜ |
 | M5 | 桌面交付：PySide6 界面 + PyInstaller 打包 + 报告导出 + 技术报告 | ⬜ |
 | M6 | 发布：git tag + GitHub Release 附产物（exe/演示 GIF）+ **发布留档三件套**，发布 GitHub 公开仓库 | ⬜ |
@@ -186,4 +186,81 @@
 ⑥ 注入真实限值 `28` 到 GUI → 政策字面量门禁报红（修好前该注入照绿）。
 
 **诚实口径**：M2 的 CI 类 DoD 同样写"**本地等价校验通过**（未接远端，CI 待首推验证）"。
+
+## M3 实录（2026-10-15）
+
+**产出**：判定层**逐条勾掉 DoD 并回填实测证据**（`plan/06` M3 段落全 `[x]`）；
+**新增 2 条结构性守门**（`tests/test_engine.py`）——本棒唯一新增代码。测试总数 **229 → 231**。
+
+**M3 是"收口"而非从零建**：M0 已写好判定引擎骨架（三态语义 + 双重门控 + 维度聚合），
+M2 在收口解析层时顺带打通了判定层的两处 M2 前置——**宣称词表单一来源**（K25，
+`claim_vocabulary()` 从规则包实算 + 唯一分派点按本轮规则包对齐）与**维度对齐**。
+故本棒**不重复造判定层**，而是把"已实现"变成"已锁死 + 已记账"。
+
+**本棒唯一新增代码**：
+
+| 测试 | 防的失效模式 |
+|---|---|
+| `test_every_kind_has_a_distinct_dispatch_implementation` | 新增/改名 kind 常量却忘在 `_JUDGES` 实现 → 该 kind 规则一生效就抛 `EngineError`；或两 kind 指向同一函数（复制粘贴）→ 判定"跑得通"但语义已错。断言 `set(_JUDGES) == set(KINDS)`、实现互不相同、且**夹具真的驱动了全部 kind** |
+| `test_dispatch_guard_rejects_unimplemented_kind` | **非空转自检**：只断言"键存在"是假门（分派表可以齐备而判定路径从不查它）。摘掉一个 kind → 判定路径必须报 `EngineError` |
+
+**M3 DoD 逐条实测证据**（完整表见 `plan/06` M3 段落）：
+
+| DoD 条目 | 证据 |
+|---|---|
+| 标示项（`presence`）：无条件义务缺失 = `noncompliant` | `test_missing_unconditional_obligation_is_noncompliant` |
+| **无适用项 → `not_assessed`**（绝不输出 compliant） | `test_no_applicable_rules_marks_not_assessed` |
+| 营养限值（`threshold`）：按阶段筛适用 / 全程 `Decimal` / 缺值 → `not_provided` | `test_threshold_*`（4 项，含边界精确值）+ `test_wrong_category_rules_do_not_apply` |
+| 宣称核查（`claim_support`）：结构化核查，不做语义硬判 | `test_claim_absent_is_skipped` / `_present_with_support_is_compliant` / `_present_without_support_is_noncompliant` |
+| 双重门控 | `test_pending_rules_are_blocked_from_judgment` / `test_clause_status_pending_does_not_block_judgment` / `test_scope_isolation_each_validates_own_entries` |
+| 零生效维度不参与聚合 + 原因码 | `test_zero_effective_dimension_is_excluded_not_judged` |
+| 义务类型分栏（`obligation` vs `conditional`） | `test_conditional_effect_missing_is_unknown_not_noncompliant` |
+| 零政策字面量门禁（引擎/基准/CLI/GUI） | `test_no_banned_numeric_literals_in_engine_sources` + `test_gui_has_no_policy_numeric_literals`（M2 已修界面侧假门）+ 非空转/变异测试 |
+| 单件与批量共用 `check_card` 分派点 | `test_check_file_matches_check_card` |
+| 失败件 ≠ 违规 + 失败隔离 | `test_scan_dir_reports_failed_items_without_changing_exit_semantics` / `test_scan_dir_isolates_failures_and_continues` |
+| 溯源完整性 | `test_every_finding_carries_resolvable_anchor` |
+
+**本地等价校验（未接远端，CI 待首推验证）**——逐条实跑并留退出码：
+
+| 通路 | 结果 |
+|---|---|
+| `pytest` 全量（Python 3.8.8） | ✅ **231 passed** |
+| `pytest` 全量（Python 3.12.10） | ✅ **231 passed** |
+| `tools/transcribe_clauses.py --check` | ✅ `TRANSCRIBE_OK` |
+| `tools/gen_rulesets.py --check` | ✅ `FROZEN_RULESET_OK` |
+| `tools/gen_samples.py --check` | ✅ `FROZEN_SAMPLES_OK` |
+| `tools/audit_desensitize.py --selftest` | ✅ 阳性 4 / 阴性 5 / 放行 1 / 豁免边界 6 |
+| `tools/audit_desensitize.py --tracked` | ✅ HARD 0 / REVIEW 0 → `DESSENSITIZE_AUDIT_OK` |
+| `tools/smoke_cli.py`（10 条退出码契约） | ✅ `SMOKE_CLI_OK` |
+| `pflc.cli bench`（四套件） | ✅ 全部达标（detection 1.00 / overall 1.00 / boundary 60/60 / traceability 43/43） |
+| `pflc.cli diagnostics` | ✅ exit 0（label 8/8 · nutrition 30/32 · claim 5/5） |
+
+**变异验证 2 处（本棒新增门）**：① `claim_support` 与 `presence` 指向同一实现 → 4 failed；
+② 从 `_JUDGES` 摘掉 `threshold` 实现 → 17 failed。
+**非空转自检**：夹具去掉 claim 维度时，"exercised 覆盖全部 kind" 断言确实报缺 `claim_support`
+（证明该门不是"键齐备"的空转门）。
+
+**M3 实测勘误 0 处**：判定层语义在 M0/M2 已定型，本棒未发现新的口径错误。
+**如实登记（非本棒引入）**：`tools/audit_desensitize.py --all`（历史模式）实测 HARD 1 / REVIEW 2，
+全部来自**历史提交** `a214320` 的 `plan/HANDOFF-M2.md`（本机用户名的绝对路径 + 转载站点邮箱）。
+该文件在 `e4ebc2c` 已改干净——工作区与 `--tracked` 实测 **HARD 0 / REVIEW 0**；
+但 **git 历史不可变**，故 `--all` 会一直报它。修它需 **git 历史重写**（破坏性、需授权），
+本项目**尚未接远端**（无外泄面），故如实登记为"已知历史项"，留待首推前由用户决定。
+
+**M3 顺带做的 M4 前置核对（实测新发现 2 条缺口，上一棒交接漏报）**：
+M3 收尾时逐条核对 `plan/06` 的 M4 DoD（**未照抄上一棒给的三条结论**），结果发现 M4 缺口是 **5 条**而非 3 条：
+
+| # | M4 缺口 | 实测证据 |
+|---|---|---|
+| 1 | 基准 fixtures 未入仓 + 无入库件一致性守门 | `data/benchmark/` **不存在**；`check_cases_frozen()` 在 `tools/`/`src/` **零调用** |
+| 2 | 覆盖登记采样数未回填 | `sampled_in_truth` 仍 `null`、`sample_list` 仍 `[]` |
+| 3 | 指标未写进 README | README 只有"测什么"表，**无实测数值** |
+| **4** 🔴 | **`overall` 套件无探活（永绿门）** | **变异证明**：把 `run_overall` 的 `passed` 改成恒真 → **231 项全绿**；对照组改 `run_boundary` → **立刻 1 项失败** |
+| **5** 🔴 | **冻结真值库根本没被读 + 载入侧零白名单校验** | `runner._sample_cases()` 每次现场重算；`load_cases()` 对含真实品牌的真值库**原样载入不报错** |
+
+**教训（记入 K 清单与反模式）**：门禁"**有测试**"不等于"**测试有效**"——每个门都要做变异验证，
+且**留一个已知有效的对照组**（防"变异根本没生效"造成误判）。**交接文档是线索不是事实，收棒必须自己跑一遍**。
+
+**诚实口径**：M3 的 CI 类 DoD 同样写"**本地等价校验通过**（未接远端，CI 待首推验证）"。
+**M3 未做 M4 的事**：M4 的 5 条真实缺口（含上表 2 条新发现）本棒**如实转交**，见 `plan/HANDOFF-M4.md` §三。
 

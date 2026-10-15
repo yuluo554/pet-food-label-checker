@@ -6,9 +6,9 @@
 
 [![ci](https://github.com/yuluo554/pet-food-label-checker/actions/workflows/ci.yml/badge.svg)](https://github.com/yuluo554/pet-food-label-checker/actions/workflows/ci.yml)
 
-> **状态**：✅ **M2 标签文本导入器已完成**——解析层补到 FR-01 全覆盖，M1 实测发现的四处缺口（宣称词表两份口径 / 生命阶段混入产品类型词 / 净含量未知单位口径 / 日期不校验合法性）逐条修掉；规则包 **45 条**（`label` 8 / `nutrition` 32 / `claim` 5），其中 **43 条已挂原文核对（`status=verified`）、2 条 `pending`**；基准四套件全部达标。未挂原文核对的规则不进入判定路径，报告会显式列出。
+> **状态**：✅ **M3 规则引擎三模块已完成**——标示项检查（`presence`）/ 营养限值判定（`threshold`）/ 宣称核查（`claim_support`）三个判定维度全部可用，逐项**三态结论 + 条款锚点**；双重门控、零生效维度排除、义务类型分栏齐备。规则包 **45 条**（`label` 8 / `nutrition` 32 / `claim` 5），其中 **43 条已挂原文核对（`status=verified`）、2 条 `pending`**；基准四套件全部达标。未挂原文核对的规则不进入判定路径，报告会显式列出。
 >
-> **本地等价校验通过**（Python 3.8 与 3.12 双解释器 **229 项测试** + 五道守门全绿）；**未接远端，CI 待首推验证**——未推送 = 未跑 CI。
+> **本地等价校验通过**（Python 3.8 与 3.12 双解释器 **231 项测试** + 六道守门全绿）；**未接远端，CI 待首推验证**——未推送 = 未跑 CI。
 
 ---
 
@@ -255,9 +255,11 @@ docs/          技术报告与演示物料
 
 ```bash
 python -m pytest -q                     # 全量测试
+python tools/transcribe_clauses.py --check  # 条文转录位级一致守门
 python tools/gen_rulesets.py --check    # 规则包位级一致守门
 python tools/gen_samples.py --check     # 夹具位级一致守门
 python tools/audit_desensitize.py --selftest   # 脱敏审计器阳性/阴性对照
+python tools/audit_desensitize.py --tracked    # 已跟踪文件脱敏审计（HARD 0 / REVIEW 0）
 python tools/smoke_cli.py               # CLI 端到端（断言退出码契约）
 ```
 
