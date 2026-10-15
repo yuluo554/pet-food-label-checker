@@ -1,11 +1,20 @@
 # 发布物 zip sha256 留档（M6）
-# 生成：py -X utf8 tools/make_release.py --dist dist --out release
+# 生成：py -X utf8 tools/make_release.py --dist dist --out release --ledger <此文件>
 # 版本：0.1.0
 #
-# 确定性口径：ZIP_STORED + 条目字典序 + 固定时间戳 1980-01-01。
-# 两次独立打包的 zip sha256 必须一致（守门见 tests/test_release.py）。
+# 确定性口径（**打包这一步**）：ZIP_STORED + 条目字典序 + 固定时间戳 1980-01-01
+#   + 固定外部属性。**同一棵树**打两次的 zip 逐字节一致（守门见 tests/test_release.py）。
 #
-# 格式：<sha256>  <附件名>  <文件数>
+# ⚠️ **但 PyInstaller 产出的树本身不是逐字节可复现的**：exe/dll 里含构建期
+#  信息（PE 时间戳、构建路径等）。M6 实测：同一份 spec 在同一台机器上两次
+#  构建，pflc-cli.exe 的 sha256 不同（813da5e1… / 9a355663…）；CI runner 上也
+#  会得到另一组哈希与另一个文件数（Windows runner 的 Python 环境收集到更多
+#  运行库，实测多 43 个文件）。故**留档哈希只对「这一份发布产物」有效**，
+#  不能用「在别处重建一次」来复现——复现的是**确定性口径**，不是那些字节。
+#  真下载复核的做法见 plan/RELEASE-M6.md §五：对账的是**下载到的附件**与
+#  本表，不是在别处重打一个。
+#
+# 格式：<zip sha256>  <附件名>  <文件数>  <树 sha256>
 
-805a5daf0e6b5d965d07c50ed914cf24ce3a310d77b697073de13df33531b0c4  pflc-cli-windows-x64-0.1.0.zip  23
-e0d6149833978ba76c9a823e7af32f987436c0a192f7ca193e484bbeb001ba62  pflc-gui-windows-x64-0.1.0.zip  165
+d9b63eab69a06155bbe6069ed9c6d678096bf8e8d56fdf28a8825748d8f7381d  pflc-cli-windows-x64-0.1.0.zip  23  a7a0878cd99797f4cafd61ab0c6c6f2590e2c76d5851227466ae16cea389f92c
+33fe4d6128c839857b59bc72808f87ef63bf416ac86ccc1425bab87636a2dcd4  pflc-gui-windows-x64-0.1.0.zip  165  474ed59841042cc29c767bcb7e3f3acedf327da54be532cb40ecc48948950c46

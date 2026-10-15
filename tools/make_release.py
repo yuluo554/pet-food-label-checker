@@ -123,6 +123,11 @@ def build_zip(dist: Path, base: str, target: Path) -> Dict[str, object]:
         "file_count": len(entries),
         "bytes": target.stat().st_size,
         "sha256": hashlib.sha256(target.read_bytes()).hexdigest(),
+        # 树摘要：说明这个 zip 是从**哪棵树**打的。PyInstaller 产物含构建期信息
+        # （PE 时间戳等），**跨机器/跨次重建不逐字节可复现**（M6 实测：
+        # 同一份 spec 两次构建的 exe sha256 不同）。故"留档能否被重建复现"
+        # 这个问题必须先问"是不是同一棵树"——树摘要就是那个判据。
+        "tree_sha256": tree_sha256(dist),
     }
 
 
@@ -160,17 +165,22 @@ def verify_zip_readback(path: Path, dist: Path, base: str) -> List[str]:
     return problems
 
 
-def _literal_hits(name: str, data: bytes, literals) -> List[str]:
-    """在一段字节里找禁用字面量。**匹配逻辑的唯一实现**。
+def _literal_hits(name: str, data: bytes, literals):
+    """在一段字节里找禁用字面量。
 
-    ``scan_zip_body`` 与 ``scan_tree_body`` 都调它——两条通路的判据不能各写一份
-    （本项目已实测过"同一口径修一边漏另一边"，见 plan/07 K5/M2）。
+    **匹配逻辑的唯一实现**。``scan_zip_body`` 与 ``scan_tree_body`` 都调它——
+    两条通路的判据不能各写一份（本项目已实测过"同一口径修一边漏另一边"，
+    见 plan/07 K5/M2）。
+
+    返回 ``[(severity, message)]``。**分级不当场丢弃**：调用方按 HARD 阻断、
+    其余只报（与 ``audit_desensitize`` 的分级语义一致——REVIEW 是"人工豁免后
+    放行"，advisory 只报不阻断）。
 
     ``boundary=True`` 的字面量要求后随字符非字母数字，复现
     ``user_name_signature`` 的排除逻辑。**这条不是洁癖**：实测 Qt 二进制里的
     ``ASUSTek COMPUTER INC``（显卡厂商串）会被裸子串判据误报成用户名命中。
     """
-    hits: List[str] = []
+    hits = []
     for category, severity, literal, boundary in literals:
         for encoding in ("ascii", "utf-16-le"):
             try:
@@ -184,16 +194,46 @@ def _literal_hits(name: str, data: bytes, literals) -> List[str]:
                     if data[after:after + 1].isalnum():
                         at = data.find(needle, at + 1)
                         continue
-                hits.append("%s [%s/%s] 命中于 %s（%s 编码）"
-                            % (name, category, severity, name, encoding))
+                hits.append((severity, "%s [%s/%s] 命中于 %s（%s 编码）"
+                             % (name, category, severity, name, encoding)))
                 break       # 每个字面量在单文件里报一次即可，不必刷屏
     return hits
+
+
+def _split_by_severity(hits):
+    """把命中拆成 ``(HARD 阻断项, 其余报告项)``。
+
+    **为什么要拆**：``repo_path_segment`` 是 REVIEW 级，而它的取值
+    （机器的上级路径段）**随构建环境变化**——CI runner 的
+    ``/home/runner/work/...`` 会让 ``home``/``runner``/``work`` 成为判据，
+    进而可能命中产物里内嵌的构建路径。若 REVIEW 也阻断，同一个仓库在不同
+    runner 上会"时红时绿"（环境决定的假红）。HARD（本机用户名签名、邮箱、
+    密钥）才是"绝不能发出去"的那一类，一律阻断。
+    """
+    hard = [msg for severity, msg in hits if severity == "HARD"]
+    other = [msg for severity, msg in hits if severity != "HARD"]
+    return hard, other
 
 
 def _iter_tree_files(dist: Path):
     """遍历发行树内的文件：``(包内相对路径, 字节)``，按路径字典序。"""
     for path in _entries(Path(dist)):
         yield path.relative_to(dist).as_posix(), path.read_bytes()
+
+
+def tree_sha256(dist: Path) -> str:
+    """整棵发行树的**内容摘要**（逐文件 sha256 聚合，与 mtime 无关）。
+
+    用途：留档要能说清"这个 zip 是从**哪棵树**打出来的"。没有它，留档就只是
+    一对孤立的哈希——换台机器重打必然对不上（PyInstaller 产物含构建期信息，
+    非逐字节可复现，M6 实测），而核对者无从判断"对不上"是因为产物变了、
+    还是因为构建环境本来就是另一棵等价的树。
+    """
+    digest = hashlib.sha256()
+    for rel, data in _iter_tree_files(Path(dist)):
+        digest.update(rel.encode("utf-8"))
+        digest.update(hashlib.sha256(data).digest())
+    return digest.hexdigest()
 
 
 def scan_tree_body(dist: Path) -> List[str]:
@@ -206,14 +246,21 @@ def scan_tree_body(dist: Path) -> List[str]:
     为什么按字面量而不是文本正则：exe/dll/pyd 里既有 ASCII 也有 **UTF-16**
     字面量。把字节当文本解码匹配会漏 UTF-16（每字符夹 NUL）；而"去掉 NUL 再
     匹配"会把本就相邻的字符拼成假阳性。字面量可以**精确编码两种形态**。
+
+    返回**只含应当阻断的问题**（HARD）；REVIEW/advisory 打到 stderr 供人工看。
     """
     literals = sensitive_literals(compute_tokens())
     if not literals:
         return ["禁用字面量集为空 —— 产物扫描会空转（判据源没接上）"]
-    problems: List[str] = []
+    hard: List[str] = []
+    other: List[str] = []
     for name, data in _iter_tree_files(Path(dist)):
-        problems.extend(_literal_hits(name, data, literals))
-    return problems
+        h, o = _split_by_severity(_literal_hits(name, data, literals))
+        hard.extend(h)
+        other.extend(o)
+    for msg in other:
+        print("提示（不阻断）：%s" % msg, file=sys.stderr)
+    return hard
 
 
 def scan_zip_body(path: Path) -> List[str]:
@@ -226,49 +273,70 @@ def scan_zip_body(path: Path) -> List[str]:
     literals = sensitive_literals(compute_tokens())
     if not literals:
         return ["禁用字面量集为空 —— 产物扫描会空转（判据源没接上）"]
-    problems: List[str] = []
+    hard: List[str] = []
+    other: List[str] = []
     with zipfile.ZipFile(path, "r") as zf:
         for name in zf.namelist():
-            problems.extend(_literal_hits("%s!%s" % (path.name, name),
-                                          zf.read(name), literals))
-    return problems
+            h, o = _split_by_severity(
+                _literal_hits("%s!%s" % (path.name, name), zf.read(name), literals))
+            hard.extend(h)
+            other.extend(o)
+    for msg in other:
+        print("提示（不阻断）：%s" % msg, file=sys.stderr)
+    return hard
 
 
 def ledger_text(records: List[Dict[str, object]], version: str) -> str:
-    """发布物 sha256 留档（入仓，供"真下载复核"对账）。"""
+    """发布物 sha256 留档（入仓，供"真下载复核"对账）。
+
+    **记三样**：zip 的 sha256、树摘要（这个 zip 从哪棵树打的）、文件数。
+    少了树摘要，留档只是一对孤立哈希——换台机器重打必然对不上，而核对者
+    无从判断"对不上"是产物变了还是构建环境本就不同（见 ``tree_sha256``）。
+    """
     lines = [
         "# 发布物 zip sha256 留档（M6）",
-        "# 生成：py -X utf8 tools/make_release.py --dist dist --out release",
+        "# 生成：py -X utf8 tools/make_release.py --dist dist --out release --ledger <此文件>",
         "# 版本：%s" % version,
         "#",
-        "# 确定性口径：ZIP_STORED + 条目字典序 + 固定时间戳 1980-01-01。",
-        "# 两次独立打包的 zip sha256 必须一致（守门见 tests/test_release.py）。",
+        "# 确定性口径（**打包这一步**）：ZIP_STORED + 条目字典序 + 固定时间戳 1980-01-01",
+        "#   + 固定外部属性。**同一棵树**打两次的 zip 逐字节一致（守门见 tests/test_release.py）。",
         "#",
-        "# 格式：<sha256>  <附件名>  <文件数>",
+        "# ⚠️ **但 PyInstaller 产出的树本身不是逐字节可复现的**：exe/dll 里含构建期",
+        "#  信息（PE 时间戳、构建路径等）。M6 实测：同一份 spec 在同一台机器上两次",
+        "#  构建，pflc-cli.exe 的 sha256 不同（813da5e1… / 9a355663…）；CI runner 上也",
+        "#  会得到另一组哈希与另一个文件数（Windows runner 的 Python 环境收集到更多",
+        "#  运行库，实测多 43 个文件）。故**留档哈希只对「这一份发布产物」有效**，",
+        "#  不能用「在别处重建一次」来复现——复现的是**确定性口径**，不是那些字节。",
+        "#  真下载复核的做法见 plan/RELEASE-M6.md §五：对账的是**下载到的附件**与",
+        "#  本表，不是在别处重打一个。",
+        "#",
+        "# 格式：<zip sha256>  <附件名>  <文件数>  <树 sha256>",
         "",
     ]
     for rec in sorted(records, key=lambda r: str(r["zip"])):
-        lines.append("%s  %s  %d" % (rec["sha256"], rec["zip"], rec["file_count"]))
+        lines.append("%s  %s  %d  %s"
+                     % (rec["sha256"], rec["zip"], rec["file_count"],
+                        rec["tree_sha256"]))
     lines.append("")
     return "\n".join(lines)
 
 
-def parse_ledger(path: Path) -> Dict[str, Tuple[str, int]]:
-    """解析留档：``{附件名: (sha256, 文件数)}``。
+def parse_ledger(path: Path):
+    """解析留档：``{附件名: (zip sha256, 文件数, 树 sha256)}``。
 
     **唯一解析实现**：测试与任何下游消费者都调它。各写一份解析必然漂移
     （本项目已实测过"同一口径修一边漏另一边"）。
     """
-    out: Dict[str, Tuple[str, int]] = {}
+    out = {}
     text = Path(path).read_text(encoding="utf-8")
     for line in text.splitlines():
         line = line.strip()
         if not line or line.startswith("#"):
             continue
         parts = line.split()
-        if len(parts) < 3:
+        if len(parts) < 4:
             continue
-        out[parts[1]] = (parts[0], int(parts[2]))
+        out[parts[1]] = (parts[0], int(parts[2]), parts[3])
     return out
 
 
@@ -334,8 +402,24 @@ def main(argv: List[str] | None = None) -> int:
         for item in problems:
             print("问题：%s" % item, file=sys.stderr)
         return 1
+    # 清单打到 stdout，**让"这棵树有多少文件"在 CI 日志里可核**：
+    # PyInstaller 收集的运行库数量随构建环境变化（M6 实测：本机 23/165，
+    # windows-latest runner 66/208 —— 两个树各多 43 个文件）。差异本身不是缺陷
+    # （数据白名单/禁区/逐份 sha256/冻结态自检都仍须全绿），但**必须可观测**，
+    # 否则"文件数对不上"只能靠猜。故这里把逐条清单打出来。
+    for rec in records:
+        print("清单 %s（%d 文件，树 %s）："
+              % (rec["zip"], rec["file_count"], rec["tree_sha256"][:16]))
+        for dist_name, base in PACKAGES:
+            if base != rec["base"]:
+                continue
+            dist = dist_root / dist_name
+            if dist.is_dir():
+                for rel, _ in _iter_tree_files(dist):
+                    print("    %s" % rel)
     print("发布物：%s" % json.dumps(
-        [{k: r[k] for k in ("zip", "file_count", "sha256")} for r in records],
+        [{k: r[k] for k in ("zip", "file_count", "sha256", "tree_sha256")}
+         for r in records],
         ensure_ascii=False, indent=2))
     print(OK_MARKER)
     return 0
