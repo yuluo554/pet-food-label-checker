@@ -122,3 +122,52 @@ jobs:
         env:
           QT_QPA_PLATFORM: offscreen
         run: python -m pytest -q -ra
+
+  # 发行态验收：真的打出 onedir 双 exe，再在**中立目录 + 剥离环境变量**下跑
+  # 冻结态三连（自检 + CLI 五连 + GUI 存活探针）。
+  #
+  # 为什么必须进 CI：M5 实测过两类"源码态绿、发行态红"——
+  #   ① 入口点错（spec 直接指向包内模块）→ 构建成功但 exe 一启动就 ImportError；
+  #   ② PyInstaller 6.x 的 _internal/ 布局让禁区扫描判据恒绿。
+  # 这两类**本地源码态测试全都看不到**，只有真构建 + 真跑 exe 才会暴露。
+  package:
+    name: package (windows / py${{ matrix.python-version }})
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12"]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
+
+      # build extra 提供 PyInstaller；gui 提供 PySide6；demo 提供 Pillow（GIF 合成）
+      - name: Install (dev + gui + build + demo extras)
+        run: python -m pip install -e ".[dev,gui,build,demo]"
+
+      - name: Assert build dependencies present
+        run: |
+          python -c "import PyInstaller, PySide6, PIL; print('PyInstaller', PyInstaller.__version__)"
+
+      - name: Build onedir dual exe
+        run: python -m PyInstaller --clean --noconfirm tools/pflc.spec
+
+      # 冻结态三连：每个发行树都跑（判据由构建期 _datas_report.json 声明驱动）
+      - name: Verify frozen CLI dist
+        run: python tools/verify_frozen.py --dist dist/pflc-cli-dist --selftest
+
+      - name: Verify frozen GUI dist
+        run: python tools/verify_frozen.py --dist dist/pflc --selftest
+
+      # 演示素材可复现性：两次独立生成，全部文件 sha256 逐个一致，
+      # 且与入仓留档一致（留档若与物料脱节，发行物料就不可核证）
+      - name: Demo assets reproducible
+        run: python tools/check_demo_reproducible.py

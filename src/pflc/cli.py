@@ -251,18 +251,31 @@ def cmd_gui(args: argparse.Namespace) -> int:
     因为 GUI 包内部用的是函数体内 ``_qt()`` 取符号（分层守门要求），
     ``import`` 本身永不抛 ImportError，真正的缺依赖异常在 ``build_app()``
     才抛。只包 import 行的话，缺 extra 时会抛裸异常而非 exit 3。
+
+    **降级提示按运行形态分流**（plan/04 §九）：冻结态提示"下载桌面版"，
+    源码态才提示 pip 安装——**冻结态用户没有 pip，也装不上 extra**。
     """
     try:
         from .gui.app import main as gui_main
 
         return gui_main()
     except ImportError as exc:
-        print(
-            "缺少 GUI 依赖：%s\n"
-            "源码态请安装：pip install -e \".[gui]\"\n"
-            "若使用发行包，请确认下载的是桌面版（本发行包未内嵌该功能）" % exc,
-            file=sys.stderr,
-        )
+        from .data_paths import is_frozen
+
+        if is_frozen():
+            print(
+                "缺少 GUI 依赖：%s\n"
+                "本发行包未内嵌该功能（这是 CLI 发行版）。\n"
+                "请改用桌面版发行包（内含 pflc.exe），或执行不带 gui 子命令的 CLI 功能。"
+                % exc,
+                file=sys.stderr,
+            )
+        else:
+            print(
+                "缺少 GUI 依赖：%s\n"
+                "源码态请安装：pip install -e \".[gui]\"" % exc,
+                file=sys.stderr,
+            )
         return EXIT_DEP_MISSING
 
 

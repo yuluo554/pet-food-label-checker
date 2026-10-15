@@ -98,11 +98,15 @@ def test_selftest_writes_file(tmp_path, rules_dir, monkeypatch):
     assert payload["checks"]["data_dir_in_dist"] is None
 
 
-def test_gui_missing_dependency_returns_exit_3(monkeypatch, rules_dir):
+def test_gui_missing_dependency_returns_exit_3(monkeypatch, rules_dir, capsys):
     """**惰性导入边界**：缺 PySide6 必须走 exit 3 而非裸异常。
 
     用 ``builtins.__import__`` 打桩让 PySide6 抛 ImportError——
     这在本机即可复现，不必等 CI 的无 Qt 环境。
+
+    同时断言**降级提示按运行形态分流**：源码态说 pip，冻结态说"下载桌面版"。
+    只断言退出码会漏掉这条口径——冻结态用户被指去 ``pip install`` 是
+    误导（他没有 pip，也装不上 extra，见 plan/04 §九）。
     """
     import builtins
 
@@ -115,7 +119,19 @@ def test_gui_missing_dependency_returns_exit_3(monkeypatch, rules_dir):
 
     monkeypatch.setattr(builtins, "__import__", fake_import)
     monkeypatch.setenv("PFLC_DATA_DIR", str(rules_dir.parent))
+
+    # ① 源码态：提示 pip
     assert main(["gui"]) == EXIT_DEP_MISSING
+    source_msg = capsys.readouterr().err
+    assert "pip install" in source_msg, "源码态未提示 pip 安装通路"
+
+    # ② 冻结态：不得再提示 pip（那正是"冻结态用户装不上 pip"的失效形态）
+    monkeypatch.setattr("pflc.data_paths.is_frozen", lambda: True)
+    assert main(["gui"]) == EXIT_DEP_MISSING
+    frozen_msg = capsys.readouterr().err
+    assert "pip install" not in frozen_msg, (
+        "冻结态仍提示 pip 安装（用户装不上）—— 降级提示未分流：%s" % frozen_msg)
+    assert "桌面版" in frozen_msg, "冻结态未提示改用桌面版发行包：%s" % frozen_msg
 
 
 def test_parser_has_all_documented_subcommands():

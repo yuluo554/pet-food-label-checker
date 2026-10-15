@@ -41,6 +41,9 @@ build = [
   "pyinstaller>=6.0; python_version >= '3.9'",
   "pyinstaller>=5.13,<6; python_version < '3.9'",
 ]
+# 演示物料通路：GIF 合成用 Pillow（PNG 截图只需 gui extra）。
+# 单列一组：核心层与 CLI 都不需要它，"演示素材生成"是独立的交付通路。
+demo = ["Pillow>=9.0"]
 
 [project.urls]
 Homepage = "https://github.com/yuluo554/pet-food-label-checker"

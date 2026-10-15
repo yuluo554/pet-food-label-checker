@@ -1,0 +1,19 @@
+# 演示物料 sha256 留档（M5）
+# 生成器：py -X utf8 tools/make_demo_assets.py --out docs/demo
+# 验收：两次独立生成全部文件 sha256 逐个一致（实测 DEMO_ASSETS_REPRODUCIBLE）
+#
+# M5 重生成（取代 M0 版）：M0 版是在**空规则包**态渲染的，三页判定维度
+# 显示"零生效规则"，基准页纯空白。M5 版是真实判定态（填表 → 点击核验 →
+# 出结果），基准页含四套件实测值（truth_source = frozen）。
+#
+# 关于"关于"页：界面显示的数据目录**已替换为 <数据目录> 占位符**。
+# 脱敏审计按扩展名把 PNG 当二进制跳过，故本机路径无法被它拦下——
+# 生成器在产素材那一步做了替换 + 硬断言（见 tools/make_demo_assets.py）。
+
+461c2f6e82afdccb44d13c1b7642b2d8cee89394932c1f740e37b650f5186c17  demo.gif
+4fb644977d3e5f86d3b8abfdd6293aad8444b93252f0a22bca9c038c1ef98e21  tab-0.png
+bcdf5e4cc8c761578c714a383cd4c7f3d011049f8e2fafba450413d58701e94d  tab-1.png
+79bba32a89ccc88ba690b2e299db1732900d211e57bbd5b5f8d9c54d67dc6475  tab-2.png
+f4555d8bb82b635bc7ff19968c90d1b6b602f618d8b4529272a5ca93654a85bf  tab-3.png
+1d01177cba6cb9e91ae470fc5cd411bd1591ff28e29f07a300a90b252accd559  tab-4.png
+6b89e007525374e5cf936cf11d4976ffef3b85d3d87712fa92a82ec75ffdc3ff  tab-5.png

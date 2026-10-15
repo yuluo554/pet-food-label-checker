@@ -670,6 +670,212 @@ def test_packaging_whitelist_gate_is_not_vacuous():
         assert dest.startswith("data/")
 
 
+def test_readme_samples_ship_in_the_package():
+    """**README 引用的夹具必须随包**——否则发行版"下载即用"条条跑不通。
+
+    README「可直接复制的示例输入」小节逐条引用 ``data/samples/*.txt``。
+    源码态跑得通不代表发行态跑得通：夹具不进包时，下载 zip 的用户照 README
+    敲命令会得到"文件不存在"，而本地一直绿（与 K29 同一族：源码态绿 ≠ 发行态绿）。
+    """
+    from pflc.packaging import DATA_WHITELIST, build_datas, data_manifest
+
+    assert "samples" in DATA_WHITELIST, "打包白名单未收 samples —— README 示例在发行包里失效"
+    targets = [dest for _src, dest in build_datas(ROOT)]
+    assert "data/samples" in targets, "build_datas 未把 data/samples 打进包：%s" % targets
+
+    # 判据落在"README 真的引用的那几个路径"上，不是"白名单里有 samples 这个词"
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    referenced = sorted(set(re.findall(r"data/samples/[\w.\-]+", readme)))
+    assert referenced, "README 未引用任何夹具 = 本门空转"
+    manifest = data_manifest(ROOT)
+    missing = [rel for rel in referenced if rel not in manifest]
+    assert missing == [], "README 引用但未随包的夹具：%s" % missing
+
+
+def test_known_unshipped_exemption_is_wired_into_the_forbidden_scan():
+    """**豁免要接线，不是声明**：``KNOWN_UNSHIPPED`` 必须在禁区名单里。
+
+    只在豁免表里写 ``knowledge``、却不在禁区名单里的形态是"两道门全开"：
+    它既不随包（没进白名单），又不被禁区扫描拦下（不在禁区）——于是
+    "有意不入包"这个决定**没有任何一道门在守**。模块导入期的
+    ``_assert_exemption_wired`` 负责拦截，这里证明它真的会拦。
+    """
+    from pflc import packaging
+
+    assert set(packaging.KNOWN_UNSHIPPED) <= set(packaging.FORBIDDEN_TOP_LEVEL), (
+        "豁免项不在禁区名单内：%s" % sorted(set(packaging.KNOWN_UNSHIPPED)
+                                          - set(packaging.FORBIDDEN_TOP_LEVEL)))
+    assert not (set(packaging.DATA_WHITELIST) & set(packaging.KNOWN_UNSHIPPED)), (
+        "白名单与豁免表重叠 = 自相矛盾的口径")
+
+    # 可证伪：把口径改坏，导入期校验必须拒绝
+    import importlib
+    original = packaging.FORBIDDEN_TOP_LEVEL
+    try:
+        packaging.FORBIDDEN_TOP_LEVEL = ("raw", "_private")   # 拿掉 knowledge
+        with pytest.raises(ValueError):
+            packaging._assert_exemption_wired()
+    finally:
+        packaging.FORBIDDEN_TOP_LEVEL = original
+    # 对照组：口径改回后不再抛（证明上面不是"随便什么输入都抛"）
+    packaging._assert_exemption_wired()
+
+
+def test_forbidden_scan_is_not_blind_to_internal_layout(tmp_path):
+    """**禁区扫描必须看得到 ``_internal/``**：M5 实测到的假门。
+
+    原实现只匹配 dist 顶层或 ``data/`` 直接子项（``len(rel.parts) <= 2``）。
+    PyInstaller 6.x onedir 把数据放进 ``_internal/data/``，禁区目录于是落在
+    ``_internal/data/knowledge``（3 段）——``len <= 2`` 的判据**永远看不到它**，
+    门在 6.x 布局下恒绿。故本测试按 6.x 真实布局构造，并留干净树作对照组。
+    """
+    from pflc.packaging import assert_no_forbidden
+
+    # 阳性：6.x 布局下禁区目录位于三级深
+    dist = tmp_path / "pflc"
+    (dist / "_internal" / "data" / "knowledge" / "raw").mkdir(parents=True)
+    (dist / "_internal" / "data" / "rules" / "_private").mkdir(parents=True)
+    problems = assert_no_forbidden(ROOT, dist)
+    hits = " ".join(problems)
+    assert "_internal" in hits and "knowledge" in hits, (
+        "6.x 布局下的 data/knowledge 未被拦截（这就是恒绿门）：%s" % problems)
+    assert "_private" in hits, "负载树内任意深度的禁区名都要被抓：%s" % problems
+
+    # 阴性对照：只有白名单目录时不得报（证明判据不是"见目录就红"）
+    clean = tmp_path / "clean"
+    for name in ("rules", "samples", "benchmark"):
+        (clean / "_internal" / "data" / name).mkdir(parents=True)
+    assert assert_no_forbidden(ROOT, clean) == [], "干净树被误报 = 判据过宽"
+
+
+def test_forbidden_scan_does_not_flag_vendored_same_name_dirs(tmp_path):
+    """**判据不落"全树同名目录"**：依赖包自带的 ``raw/`` 不得算命中。
+
+    "任意层级 rglob 该名字"会把第三方依赖内部恰好叫 ``raw``/``knowledge``
+    的目录当违规，制造假红。扫描面固定为**我们自己的 data/ 子树**。
+    """
+    from pflc.packaging import assert_no_forbidden
+
+    dist = tmp_path / "pflc"
+    vendored = dist / "_internal" / "PySide6" / "Qt" / "raw"
+    vendored.mkdir(parents=True)
+    (dist / "_internal" / "data" / "rules").mkdir(parents=True)
+    assert assert_no_forbidden(ROOT, dist) == [], (
+        "依赖包内的同名目录被误判为禁区成分（判据过宽）")
+
+
+def test_packaging_extra_data_gate_reports_unregistered_dirs(tmp_path):
+    """未登记数据目录必须被报出来，且**豁免项不算未登记**（非空转双向验证）。"""
+    from pflc.packaging import assert_no_extra_data
+
+    root = tmp_path / "repo"
+    (root / "data" / "rules").mkdir(parents=True)
+    (root / "data" / "knowledge").mkdir(parents=True)
+    (root / "data" / "surprise").mkdir(parents=True)
+    problems = assert_no_extra_data(root, tmp_path / "dist")
+    joined = " ".join(problems)
+    assert "surprise" in joined, "未登记的新目录未被报出：%s" % problems
+    assert "knowledge" not in joined, "豁免项被当成未登记 = 豁免没接线：%s" % problems
+
+
+# --------------------------------------------------------------------------
+# 门禁八：打包 spec（入口点 / 数据路径单一来源 / 双包分流）
+# --------------------------------------------------------------------------
+
+
+def _spec_text() -> str:
+    path = TOOLS / "pflc.spec"
+    assert path.is_file(), "spec 未入仓：%s" % path
+    return path.read_text(encoding="utf-8")
+
+
+def _spec_analysis_scripts() -> list:
+    """从 spec 抽取每个 ``Analysis(...)`` 的第一个位置参数（脚本路径的源码片段）。
+
+    用 AST 而非正则：spec 里 ``Analysis(  # noqa: F821`` 带行尾注释，
+    正则会被注释绊住而**静默抽到空列表**——判据于是空转（本测试第一次跑就踩中）。
+
+    用 ``ast.get_source_segment`` 而非 ``ast.unparse``：后者是 **3.9+** API，
+    本项目底线 3.8（否则守门测试在 3.8 上直接 AttributeError）。
+    """
+    text = _spec_text()
+    tree = ast.parse(text, filename="pflc.spec")
+    scripts = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call) and getattr(node.func, "id", "") == "Analysis":
+            assert node.args, "Analysis 调用缺脚本参数"
+            segment = ast.get_source_segment(text, node.args[0])
+            scripts.append(segment if segment is not None else "")
+    return scripts
+
+
+def test_spec_does_not_hand_write_data_paths():
+    """**datas 单一事实源**：spec 内不得手写数据路径，只准用 ``build_datas()``。
+
+    这条纪律此前只写在 ``packaging.py`` 的 docstring 里（声称"三处守门"），
+    但**实际没有这道门**——docstring 声称的门与本测试是同一条，这里把它做实。
+    判据是"spec 里出现了 ``data/`` 字面路径"，不是"文件里有没有 build_datas 这串字"。
+    """
+    text = _spec_text()
+    assert "build_datas(" in text, "spec 未调用 build_datas（数据路径来源不是白名单）"
+    # 排除注释与 _datas_report 里的 dest 拼接（"data/%s" 是格式化，不是手写路径）
+    offending = []
+    for lineno, line in enumerate(text.splitlines(), 1):
+        stripped = line.strip()
+        if stripped.startswith("#"):
+            continue
+        if 'data/%s' in stripped or 'data/benchmark' in stripped or 'data/rules' in stripped \
+                or 'data/samples' in stripped:
+            offending.append("%d: %s" % (lineno, stripped))
+    assert offending == [], "spec 手写了数据路径（应走 build_datas 白名单）：%s" % offending
+
+
+def test_spec_entry_points_are_package_safe():
+    """**入口点必须在包内可导入**：直接指向 ``src/pflc/*.py`` 会打断包语义。
+
+    M5 实测踩中：spec 把 ``src/pflc/cli.py`` 当 Analysis 脚本，PyInstaller 于是
+    以**顶层脚本**方式运行它，``from . import pipeline`` 没有父包可挂——
+    构建**成功**，冻结态一启动就 ``ImportError``。构建成功 ≠ 产物可用。
+
+    判据：Analysis 脚本只准是 ``tools/entry_*.py``，且这些文件用**绝对导入**。
+    """
+    scripts = _spec_analysis_scripts()
+    assert scripts, "未能从 spec 提取 Analysis 脚本 = 判据空转"
+    joined = " ".join(scripts)
+    assert "entry_cli.py" in joined and "entry_gui.py" in joined, (
+        "Analysis 脚本未走包内安全入口：%s" % scripts)
+    assert "cli.py" not in joined.replace("entry_cli.py", ""), (
+        "spec 仍直接指向 src/pflc/cli.py（会打断包语义）：%s" % scripts)
+    assert "app.py" not in joined, (
+        "spec 仍直接指向 src/pflc/gui/app.py（会打断包语义）：%s" % scripts)
+
+    for name in ("entry_cli.py", "entry_gui.py"):
+        entry = TOOLS / name
+        assert entry.is_file(), "缺包内入口脚本：%s" % entry
+        source = entry.read_text(encoding="utf-8")
+        tree = ast.parse(source, filename=str(entry))
+        top_relative = [n for n in tree.body
+                        if isinstance(n, ast.ImportFrom) and (n.level or 0) > 0]
+        assert top_relative == [], "%s 顶层用了相对导入（冻结态会 ImportError）" % name
+
+
+def test_cli_package_excludes_gui_dependency():
+    """**CLI 发行包特意不带 PySide6**：带了会让 exit 3 降级提示变死代码。
+
+    ``cli.cmd_gui`` 对缺依赖的 CLR+D 发行包提示"本发行包未内嵌该功能"。
+    把 PySide6 打进 CLI 包，这句提示永远走不到，还白送约 87 MB（实测）。
+    同时 GUI 包**必须**带上它——两个包的分流是产品口径，不是构建巧合。
+    """
+    text = _spec_text()
+    # CLI 的 Analysis 块：以 "_BENCH_HIDDEN," 收尾的 hiddenimports
+    cli_block = text.split("a_cli = Analysis")[1].split("pyz_cli")[0]
+    gui_block = text.split("a_gui = Analysis")[1].split("pyz_gui")[0]
+    assert "PySide6" in cli_block, "CLI 包未排除 PySide6（白送体积且降级提示失效）"
+    assert "PySide6" not in gui_block, "GUI 包不得排除 PySide6"
+    assert "_GUI_HIDDEN" in gui_block, "GUI 包未声明 GUI hiddenimports"
+    assert "_GUI_HIDDEN" not in cli_block, "CLI 包不该收 GUI hiddenimports"
+
+
 def test_ci_runs_every_frozen_generator_check():
     """**每个冻结生成器的 `--check` 都必须在 CI 上真的跑。**
 
@@ -832,22 +1038,103 @@ def test_ci_workflow_declares_utf8_env():
     assert "PYTHONIOENCODING" in text
 
 
+def _ci_run_steps():
+    """解析 CI workflow 的**活 run 步骤**（注释行不会被解析成步骤）。
+
+    返回 ``[(job_name, step_name, run_text)]``。用 yaml 解析而非子串匹配：
+    子串判据会被"整段注释掉"绕过（M4 实测的假门形态）。
+    """
+    workflow = ROOT / ".github" / "workflows" / "ci.yml"
+    if not workflow.is_file():
+        pytest.skip("CI workflow 尚未创建")
+    try:
+        import yaml
+    except ImportError:
+        pytest.skip("未安装 pyyaml（dev extra 应包含它）")
+    data = yaml.safe_load(workflow.read_text(encoding="utf-8"))
+    out = []
+    for job_name, job in data.get("jobs", {}).items():
+        for step in job.get("steps", []):
+            if step.get("run"):
+                out.append((job_name, str(step.get("name", "")), str(step["run"])))
+    return out
+
+
 def test_ci_extras_cover_every_milestone_gate():
     """**CI 的 extras 必须覆盖全部里程碑门的依赖**，否则门在 CI 上静默跳过。
 
     "本地一直绿" ≠ "CI 验过"：只装 ``[dev]`` 时 ``test_gui.py`` 走模块级
     ``importorskip`` 静默跳过——GUI 层的 AST 门禁等于从未在 CI 上运行过。
-    本测试断言 CI 存在一条装了 ``gui`` extra 的通路。
+
+    判据落在**活 run 步骤**上：``pip install -e ".[dev,gui,...]"`` 语句出现、
+    ``import PySide6`` 真被跑、Linux 补了 Qt 系统库。子串匹配会被注释绕过。
     """
-    workflow = ROOT / ".github" / "workflows" / "ci.yml"
-    if not workflow.is_file():
-        pytest.skip("CI workflow 尚未创建")
-    text = workflow.read_text(encoding="utf-8")
-    assert "gui" in text and "pip install" in text, "CI 未安装 gui extra"
-    # 必须显式断言依赖装上（否则 importorskip 又变静默跳过）
-    assert "import PySide6" in text, "CI 未断言 GUI 依赖真实可用"
-    # Linux 需要补 Qt 系统库，否则 import PySide6.QtWidgets 直接 ImportError
-    assert "libegl1" in text, "CI 未为 Linux 补 Qt 系统库"
+    steps = _ci_run_steps()
+    assert steps, "未能从 CI 解析出任何 run 步骤 = 判据空转"
+    joined = "\n".join(run for _job, _name, run in steps)
+
+    assert '".[dev,gui' in joined or ".[dev,gui" in joined, \
+        "CI 未安装 gui extra（test_gui 会静默跳过）"
+    assert "import PySide6" in joined, "CI 未断言 GUI 依赖真实可用"
+    assert "libegl1" in joined, "CI 未为 Linux 补 Qt 系统库"
+
+
+def test_ci_verifies_frozen_distributions():
+    """**发行态验收必须在 CI 上真的跑**——这是 M5 两类"源码态绿"的唯一防线。
+
+    M5 实测的两类失效**本地源码态测试全都看不到**：
+      ① 入口点错（spec 指向包内模块）→ 构建成功、exe 一启动就 ImportError；
+      ② PyInstaller 6.x ``_internal/`` 布局让禁区扫描判据恒绿。
+    故 CI 必须有"真构建 + 真跑 exe"的 job，且两个发行树都验。
+    """
+    steps = _ci_run_steps()
+    joined = "\n".join(run for _job, _name, run in steps)
+    assert "PyInstaller" in joined, "CI 未真的构建发行产物"
+
+    # 判据必须锚定**完整的 --dist 参数**，不能裸判 "dist/pflc"：
+    # 后者是 "dist/pflc-cli-dist" 的子串，注释掉 GUI 那步照样命中 = 假门
+    # （本测试第一版就是这么写的，变异验证当场抓出来）。
+    for dist_name in ("dist/pflc-cli-dist", "dist/pflc"):
+        pattern = re.compile(r"--dist\s+%s\s+--selftest" % re.escape(dist_name))
+        assert pattern.search(joined), (
+            "CI 未对这个发行树跑「--dist %s --selftest」：判据锚定完整参数，"
+            "避免 dist/pflc 命中 dist/pflc-cli-dist" % dist_name)
+    # 演示物料可复现性也要在 CI 上跑（本地生成过 ≠ CI 验过）
+    assert "check_demo_reproducible.py" in joined, "CI 未验演示物料可复现性"
+
+
+def test_ci_run_step_parser_is_not_fooled_by_comments(tmp_path):
+    """**可证伪性证明**：把构建 step 整段注释掉后，判据必须不再认为它在跑。
+
+    这是上一条测试的对照组。M4 实测过判据退化成"文件里出现过这串字"的后果——
+    整段注释掉照样绿。故这里直接拿一份**注释版 workflow** 验证解析器行为，
+    而不是对字符串做 `in` 判断（那正是假门的形态）。
+    """
+    try:
+        import yaml  # noqa: F401
+    except ImportError:
+        pytest.skip("未安装 pyyaml")
+
+    commented = tmp_path / "ci.yml"
+    commented.write_text(
+        "jobs:\n"
+        "  package:\n"
+        "    steps:\n"
+        "      - name: Build\n"
+        "        # run: python -m PyInstaller --clean --noconfirm tools/pflc.spec\n"
+        "      - name: Real\n"
+        "        run: python tools/verify_frozen.py --dist dist/pflc --selftest\n",
+        encoding="utf-8",
+    )
+    data = yaml.safe_load(commented.read_text(encoding="utf-8"))
+    runs = [str(s["run"]) for job in data["jobs"].values()
+            for s in job["steps"] if s.get("run")]
+    joined = "\n".join(runs)
+
+    # 正向：真 step 被提取到（判据并非空转）
+    assert "verify_frozen.py" in joined, "解析器漏掉了真实 run 步骤"
+    # 反向：注释掉的 step **不产生 run** —— 故"在跑"的判据不可能被注释骗过
+    assert "PyInstaller" not in joined, "注释掉的 step 被当成在跑（假门重现）"
 
 
 def test_dev_extras_cover_test_imports():

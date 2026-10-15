@@ -93,6 +93,33 @@ python -m pip install -e ".[gui]"
 python -m pflc.cli gui
 ```
 
+### 打包为桌面 exe（onedir 双 exe）
+
+```bash
+# 打 GUI（PySide6）必须 PyInstaller >=6；构建通路固定用 3.12
+python -m pip install -e ".[gui,build]"
+python -m PyInstaller --clean --noconfirm tools/pflc.spec
+
+# 产物是两棵**独立的树**（不是同一棵树里的两个 exe）：
+#   dist/pflc/pflc.exe               桌面版（约 112 MB，内嵌 PySide6）
+#   dist/pflc-cli-dist/pflc-cli.exe  CLI 版（约 17 MB，**特意不含 Qt**）
+```
+
+**为什么 CLI 包不含 GUI**：它靠 `pflc-cli.exe gui` 走 **exit 3** 并提示"请改用桌面版"来分流。
+把 PySide6 打进 CLI 包会让这句提示变成死代码，并白送约 87 MB 体积。
+
+**构建后验收**（在**中立目录 + 剥离环境变量**下自动跑，别在仓库树内跑）：
+
+```bash
+python tools/verify_frozen.py --dist dist/pflc-cli-dist --selftest   # → VERIFY_FROZEN_OK
+python tools/verify_frozen.py --dist dist/pflc --selftest            # → VERIFY_FROZEN_OK
+```
+
+它做四件事：① dist 内禁区成分扫描（**覆盖 PyInstaller 6.x 的 `_internal/` 布局**）；
+② 内嵌数据与仓库逐份 sha256 对账；③ 白名单外多余数据目录检测；
+④ 冻结态三连——自检（数据目录落在 exe 内 + 规则数 > 0）、CLI 五连（退出码逐条符合声明）、
+GUI 存活探针（offscreen 真构主窗口，回传页签数）。
+
 ### 退出码语义
 
 | 码 | 含义 |
@@ -115,6 +142,18 @@ python -m pflc.cli gui
 | `data/samples/label-demo-overlimit.txt` | 保证值低于限值 |
 | `data/samples/label-demo-claim.txt` | 宣称"天然、无谷"但缺原料组成支撑 |
 | `data/samples/label-demo-edge.txt` | 解析层边界：产品类型词"全价"与"幼年"同现 / 净含量未知单位 `oz` / 非法日期 `2026-13-45` |
+
+---
+
+## 界面演示
+
+`docs/demo/`（6 页签截图 + GIF）由 `tools/make_demo_assets.py` **程序化产出**，
+两次独立生成的 sha256 逐个一致（`tools/check_demo_reproducible.py` → `DEMO_ASSETS_OK`）。
+
+![桌面应用演示](docs/demo/demo.gif)
+
+截图是**真实判定态**：灌入合成标签 → 点击"核验" → 出逐条结论；基准页含四套件实测值。
+（早期物料是在空规则包态渲染的，判定页显示"零生效规则"、基准页空白——M5 已重生成。）
 
 ---
 
@@ -233,7 +272,7 @@ GB/T 31216/31217 的理化指标表头写明 **"指标（以干物质计）/%"**
 plan/          计划文档（00 总览 / 01 题面 / 02 需求 / 03 架构 / 04 详设 / 05 数据 / 06 里程碑 / 07 对标与决策）
 data/          数据层（knowledge 原文快照 / rules 冻结规则包 / samples 夹具 / benchmark 真值库）
 src/pflc/      主包（model / parse / rules / engine / report / pipeline / cli / gui / benchmark）
-tools/         生成器与守门脚本（gen_rulesets / gen_cases / gen_samples / audit_desensitize / verify_frozen / smoke_cli / pflc.spec）
+tools/         生成器与守门脚本（gen_rulesets / gen_cases / gen_samples / audit_desensitize / verify_frozen / smoke_cli / check_demo_reproducible / entry_cli / entry_gui / pflc.spec）
 tests/         测试（含零字面量门禁 / AST 分层门禁 / EOL 门禁 / 探活变异验证）
 docs/          技术报告与演示物料
 ```
@@ -278,9 +317,11 @@ python tools/gen_samples.py --check     # 夹具位级一致守门
 python tools/audit_desensitize.py --selftest   # 脱敏审计器阳性/阴性对照
 python tools/audit_desensitize.py --tracked    # 已跟踪文件脱敏审计（HARD 0 / REVIEW 0）
 python tools/smoke_cli.py               # CLI 端到端（断言退出码契约）
+python tools/check_demo_reproducible.py # 演示物料两次生成 sha256 一致 + 对账留档
 ```
 
-CI 四矩阵：`windows×{3.8,3.12} + ubuntu×{3.12}`。
+CI 四矩阵：`windows×{3.8,3.12} + ubuntu×{3.12}`，外加一个 `package` job
+（真构建 onedir 双 exe → 两树冻结态验收 → 演示物料可复现性）。
 
 ---
 
