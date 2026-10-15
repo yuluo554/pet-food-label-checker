@@ -55,12 +55,12 @@
 | M5 DoD | 初测状态 |
 |---|---|
 | GUI 多页签、零判定逻辑（AST 三条齐上） | 🔶 **骨架已有**：`gui/app.py` 6 页签（导入/明细/… /基准/关于），AST 三条门禁**已有测试**（`test_gates.py` 三条 + 非空转 + 变异） |
-| 编排上收成公开函数组 + 三方对账测试 | 🔶 `pipeline.py` 公开函数组已有；**三方对账**（CLI stdout == pipeline 直调 == 报告章节）**待确认是否已有专项测试** |
-| 报告双轨（md + csv）：单一渲染源 / 无外链 / 逐字节可复现 / 溯源硬约束 | 🔶 `report/__init__.py` 已实现（`report_sections` 单一渲染源 + `render_csv` 无外链断言 + `TraceabilityError` 拒导）；**逐字节可复现**待实测 |
+| 编排上收成公开函数组 + 三方对账测试 | ✅ **已有**：`pipeline.py` 公开函数组；`tests/test_pipeline.py::test_three_way_reconciliation`（CLI stdout == pipeline 字段 == 报告章节）实测通过 |
+| 报告双轨（md + csv）：单一渲染源 / 无外链 / 逐字节可复现 / 溯源硬约束 | 🔶 `report/__init__.py` 已实现（`report_sections` 单一渲染源 + `render_csv` 无外链断言 + `TraceabilityError` 拒导）；`test_repeated_calls_are_field_identical` 覆盖确定性；**M5 需在打包产物上复验** |
 | PyInstaller onedir 双 exe + 构建后三断言 | ⬜ **未构建**。`tools/pflc.spec` 与 `packaging.py` 三断言已就绪；`py -3.12 -m PyInstaller --version` → **6.22.3**（可用） |
 | 冻结态 `--selftest <out>` | 🔶 `cmd_selftest` 已实现（`frozen` + `数据目录在 exe 内` + `规则数 > 0`）；**未在真冻结态验过** |
 | 中立目录 + `env -i` 跑 CLI 五连 + GUI 存活探针 | ⬜ `tools/verify_frozen.py` 有 `--selftest` 通路（含中立目录 + 剥离环境变量）；**GUI 存活探针待补** |
-| 演示素材程序化产出（PNG + GIF 两次 sha256 一致） | 🔶 `tools/make_demo_assets.py` 已实现、M0 已留档；**M4 新增的 benchmark 页签可能影响截图**（页签数/内容），M5 需重生成并复核 |
+| 演示素材程序化产出（PNG + GIF 两次 sha256 一致） | 🔶 `tools/make_demo_assets.py` 已实现、M0 已留档两次 sha256 一致。**但物料是 M0 空规则包态渲染的**（页签数 6 与当前一致，实测 `TAB_TITLES` 6 项；内容过时——三页判定维度显示"零生效规则"）。`docs/demo/README.md` 已如实登记"物料落后于数据"，**M5 必须重生成**（填表→点击→出结果的真实判定态），并更新 sha256 留档 |
 | 技术报告 `docs/技术报告.md` | ✅ 已存在，M4 已回填 §6.6/§6.9/§6.10/§十 |
 | `plan/HANDOFF-M6.md` 已落盘并 commit | ⬜ M5 出口门 |
 
