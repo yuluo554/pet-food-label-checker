@@ -124,7 +124,7 @@ py -X utf8 tools/gen_samples.py --force          # 重生成夹具
 | 备份 | `git bundle create .tmp/backup-pre-m6.bundle --all`（12 rev / 9 MB，`verify` 报完整历史） |
 | 历史重写 | `tools/rewrite_history_m6.py --apply` → **HARD 3→0**；两处本机用户名路径 + 全部提交邮箱（→ GitHub noreply） |
 | 建远端 | 先 **private**（`gh repo create --private`），避免首跑红留进公开历史 |
-| 首推 CI | 首跑 **8 job / 5 绿 3 红**（run `38702307047`） |
+| 首推 CI | 首跑 **7 job / 4 绿 3 红**（run `38702307047`） |
 | 修缺陷 | 3 个真缺陷（全部"本机绿、CI 红"），修完复跑 **7/7 全绿** |
 | 三清收尾 | 删失败 run `38702307047` |
 | Release | tag `v0.1.0` + Release + 两个 zip 附件 |

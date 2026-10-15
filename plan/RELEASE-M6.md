@@ -202,7 +202,7 @@ py -X utf8 tools/rewrite_history_m6.py --apply    # 真跑
 
 ### 首跑 run `38702307047`（2026-10-15T07:57:48Z，commit `e3adf48`）
 
-**结果：8 个 job，5 绿 3 红。**
+**结果：7 个 job（test×3 + test-gui×3 + package×1），4 绿 3 红。**
 
 | job | 结论 |
 |---|---|
@@ -245,6 +245,19 @@ ubuntu runner 的仓库路径是 `/home/runner/work/<repo>/<repo>`，于是
 的取值**随构建环境变化**，若 REVIEW 也阻断，同一仓库在不同 runner 上会
 **时红时绿**（环境决定的假红）。改为**只 HARD 阻断**，REVIEW/advisory 打到 stderr
 供人工看（与 `audit_desensitize` 的分级语义一致）。
+
+### 一处自查修正：首跑 job 数（"计数当轮实测，别抄"）
+
+初版留档把首跑写成"8 个 job，5 绿 3 红"。**这是错的**——复核时用两路独立证据校正为
+**7 个 job / 4 绿 3 红**：
+
+1. **workflow 定义**（`py -X utf8` 解析 `ci.yml`）：`test` 3 + `test-gui` 3 + `package` 1 = **7**；
+2. **API 实测**（未删的修复 run `38704584927`）：`[.jobs[] | .conclusion] | group_by(.)`
+   → `{"success": 7}` = **7**。
+
+**根因 = 抄了一个印象中的数字，没当轮实测**（本项目自己的纪律："计数当轮实测，别抄上一棒"）。
+留档口径已全仓同步修正（`plan/00`·`06`·`07`·`HANDOFF-FINAL`·`docs/技术报告`），
+并在本节留痕说明修正过程——**"首跑红"要照录，自己的计数错也要照录**。
 
 ### 复跑与 run/push 对账
 
