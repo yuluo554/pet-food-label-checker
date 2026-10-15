@@ -70,14 +70,14 @@
 
 ## M0 实录（2026-10-15）
 
-**产出**：`plan/` 计划文档 00–07 齐备；工程骨架（`pyproject.toml` / `LICENSE` / `.gitattributes` / `.gitignore` / `README.md`）；核心层 `src/pflc/`（model / parse / rules / engine / report / pipeline / cli / gui / benchmark / packaging / data_paths）；`tools/` 六个脚本（gen_rulesets / gen_samples / audit_desensitize / verify_frozen / smoke_cli / make_demo_assets）+ `pflc.spec`；`tests/` 167 项；`.github/workflows/ci.yml`（四矩阵）；`docs/`（技术报告 + 演示物料 + sha256 留档）。
+**产出**：`plan/` 计划文档 00–07 齐备；工程骨架（`pyproject.toml` / `LICENSE` / `.gitattributes` / `.gitignore` / `README.md`）；核心层 `src/pflc/`（model / parse / rules / engine / report / pipeline / cli / gui / benchmark / packaging / data_paths）；`tools/` 六个脚本（gen_rulesets / gen_samples / audit_desensitize / verify_frozen / smoke_cli / make_demo_assets）+ `pflc.spec`；`tests/` 169 项；`.github/workflows/ci.yml`（四矩阵）；`docs/`（技术报告 + 演示物料 + sha256 留档）。
 
 **本地等价校验（未接远端，CI 待首推验证）**——逐条实跑并留退出码：
 
 | 通路 | 结果 |
 |---|---|
-| `pytest` 全量（Python 3.8.8） | ✅ 167 passed |
-| `pytest` 全量（Python 3.12.10） | ✅ 167 passed |
+| `pytest` 全量（Python 3.8.8） | ✅ 169 passed |
+| `pytest` 全量（Python 3.12.10） | ✅ 169 passed |
 | `tools/gen_rulesets.py --check` | ✅ `FROZEN_RULESET_OK` |
 | `tools/gen_samples.py --check` | ✅ `FROZEN_SAMPLES_OK` |
 | `tools/audit_desensitize.py --selftest` | ✅ 阳性 4 / 阴性 5 / 放行 1 |

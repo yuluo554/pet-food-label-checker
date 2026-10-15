@@ -14,7 +14,7 @@
 | 工程骨架 | ✅ `pyproject.toml`（extras: dev/gui/build）、`LICENSE`（MIT, yuluo554）、`.gitattributes`、`.gitignore`、`README.md` |
 | 核心层 | ✅ `src/pflc/`：`model` / `parse` / `rules` / `engine` / `report` / `pipeline` / `cli` / `gui` / `benchmark` / `packaging` / `data_paths` |
 | 工具脚本 | ✅ `tools/`：`gen_rulesets.py` / `gen_samples.py` / `audit_desensitize.py` / `verify_frozen.py` / `smoke_cli.py` / `make_demo_assets.py` / `pflc.spec` |
-| 测试 | ✅ `tests/` 167 项，Python 3.8.8 与 3.12.10 双解释器全绿 |
+| 测试 | ✅ `tests/` 169 项，Python 3.8.8 与 3.12.10 双解释器全绿 |
 | CI | ✅ `.github/workflows/ci.yml`（windows×{3.8,3.12} + ubuntu×3.12，`fetch-depth: 0`，`PYTHONUTF8=1`） |
 | 文档 | ✅ `docs/技术报告.md`、`docs/demo/`（6 PNG + 1 GIF）、`docs/DIST-sha256-M0.txt` |
 | 数据 | 🔶 规则包已生成但**规则条目数为 0**（待 M1 录入）；`data/samples/` 4 份合成夹具 ✅ |
@@ -133,7 +133,7 @@
 
 ```bash
 # --- 测试与守门（每次收尾必跑）---
-py -X utf8 -m pytest -q                              # 全量（应 167 passed）
+py -X utf8 -m pytest -q                              # 全量（应 169 passed）
 py -3.12 -X utf8 -m pytest -q                        # 双解释器验证
 py -X utf8 tools/gen_rulesets.py --check             # 期望 FROZEN_RULESET_OK
 py -X utf8 tools/gen_samples.py --check              # 期望 FROZEN_SAMPLES_OK

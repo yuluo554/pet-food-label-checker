@@ -585,3 +585,62 @@ def test_ci_workflow_declares_utf8_env():
     text = workflow.read_text(encoding="utf-8")
     assert "PYTHONUTF8" in text
     assert "PYTHONIOENCODING" in text
+
+
+def test_ci_extras_cover_every_milestone_gate():
+    """**CI 的 extras 必须覆盖全部里程碑门的依赖**，否则门在 CI 上静默跳过。
+
+    "本地一直绿" ≠ "CI 验过"：只装 ``[dev]`` 时 ``test_gui.py`` 走模块级
+    ``importorskip`` 静默跳过——GUI 层的 AST 门禁等于从未在 CI 上运行过。
+    本测试断言 CI 存在一条装了 ``gui`` extra 的通路。
+    """
+    workflow = ROOT / ".github" / "workflows" / "ci.yml"
+    if not workflow.is_file():
+        pytest.skip("CI workflow 尚未创建")
+    text = workflow.read_text(encoding="utf-8")
+    assert "gui" in text and "pip install" in text, "CI 未安装 gui extra"
+    # 必须显式断言依赖装上（否则 importorskip 又变静默跳过）
+    assert "import PySide6" in text, "CI 未断言 GUI 依赖真实可用"
+    # Linux 需要补 Qt 系统库，否则 import PySide6.QtWidgets 直接 ImportError
+    assert "libegl1" in text, "CI 未为 Linux 补 Qt 系统库"
+
+
+def test_dev_extras_cover_test_imports():
+    """**测试面 = 安装面**：测试套件真 import 的库必须在 dev extra 里。
+
+    否则干净 venv 照 README 装完全量测试会硬失败（开发机装齐全绿，
+    缺口永远不显形）。
+    """
+    pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    dev_block = pyproject.split("dev = [", 1)[1].split("]", 1)[0]
+    # 测试真 import 的第三方库（标准库不算）
+    assert "pytest" in dev_block
+    assert "pyyaml" in dev_block, "CI workflow 解析守门测试需要 pyyaml"
+
+    # 反向核对：tests/ 里 import 的第三方顶层模块都在 dev 里声明
+    third_party = set()
+    for path in sorted((ROOT / "tests").rglob("*.py")):
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    third_party.add(alias.name.split(".")[0])
+            elif isinstance(node, ast.ImportFrom) and node.level == 0:
+                if node.module:
+                    third_party.add(node.module.split(".")[0])
+
+    stdlib_or_local = {
+        "pflc", "tests", "ast", "json", "os", "re", "sys", "io", "pathlib",
+        "decimal", "hashlib", "subprocess", "importlib", "typing", "builtins",
+        "dataclasses", "collections", "csv", "textwrap", "tempfile", "shutil",
+        "itertools", "functools", "unittest", "warnings", "copy", "time",
+        "__future__", "fnmatch", "glob", "math", "random", "string", "struct",
+        "urllib", "contextlib", "abc", "enum", "operator", "traceback",
+    }
+    missing = sorted(
+        name for name in third_party
+        if name not in stdlib_or_local
+        and name.lower() not in dev_block.lower()
+        and name not in ("PySide6",)  # gui extra 覆盖，见 test_gui 的 importorskip
+    )
+    assert missing == [], "tests/ import 但 dev extra 未声明的库：%s" % missing
