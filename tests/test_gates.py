@@ -1170,6 +1170,8 @@ def test_dev_extras_cover_test_imports():
         "urllib", "contextlib", "abc", "enum", "operator", "traceback",
         # M6：发布打包/回读保真测试用（ZIP 格式的标准库）——不是安装面依赖
         "zipfile",
+        # M6：stdlib 判定辅助用（sysconfig 定位标准库路径，3.8 兼容）
+        "sysconfig",
     }
     missing = sorted(
         name for name in third_party
@@ -1178,3 +1180,157 @@ def test_dev_extras_cover_test_imports():
         and name not in ("PySide6",)  # gui extra 覆盖，见 test_gui 的 importorskip
     )
     assert missing == [], "tests/ import 但 dev extra 未声明的库：%s" % missing
+
+
+#: 第三方**分发名 → import 名**的别名表（只放真正对不上的）。
+#:
+#: extras 里写的是分发包名（``Pillow``），代码里 import 的是模块名（``PIL``）——
+#: 直接比较会把它们当成"未覆盖"，制造假红。
+IMPORT_NAME_ALIASES = {"Pillow": "PIL", "pyyaml": "yaml"}
+
+
+def _extras_of(pyproject_text: str):
+    """解析 ``[project.optional-dependencies]`` → ``{extra: [分发名]}``。
+
+    用 tomllib/tomli 都不稳（3.8 无 tomllib），故按块切——这几行的形态是
+    本项目自己维护的，够用且无额外依赖。
+    """
+    import re as _re
+
+    block = pyproject_text.split("[project.optional-dependencies]", 1)
+    if len(block) < 2:
+        return {}
+    body = block[1].split("\n[", 1)[0]
+    extras = {}
+    for match in _re.finditer(r"^(\w+)\s*=\s*\[(.*?)\]", body,
+                              flags=_re.S | _re.M):
+        extra, items = match.group(1), match.group(2)
+        names = []
+        for line in items.splitlines():
+            line = line.strip().strip(",").strip().strip('"').strip("'")
+            if not line or line.startswith("#"):
+                continue
+            # 去掉版本约束与环境标记
+            name = _re.split(r"[<>=;!\[ ]", line, 1)[0].strip()
+            if name:
+                names.append(name)
+        extras[extra] = names
+    return extras
+
+
+def _is_stdlib_module(name: str) -> bool:
+    """模块是否属于标准库（**3.8 兼容**）。
+
+    ``sys.stdlib_module_names`` 是 **3.10+** 才有（本项目底线 3.8，直接用它
+    会在 3.8 上把每个标准库都判成第三方 = 假红一片）。故退回按**安装位置**判：
+    解析出模块文件路径，落在 stdlib 目录且不在 site-packages 下即为标准库。
+    内置/冻结模块（``sys`` 等）另按 ``builtin_module_names`` 判。
+    """
+    import importlib.util
+    import sys as _sys
+    import sysconfig
+
+    if name in getattr(_sys, "builtin_module_names", ()):
+        return True
+    try:
+        spec = importlib.util.find_spec(name)
+    except (ImportError, ValueError, AttributeError):
+        return False
+    if spec is None:
+        return False
+    origin = spec.origin
+    if origin in (None, "built-in", "frozen"):
+        return True
+    try:
+        path = Path(origin)
+    except TypeError:
+        return False
+    stdlib = Path(sysconfig.get_paths().get("stdlib", ""))
+    try:
+        path.relative_to(stdlib)
+    except ValueError:
+        return False
+    return "site-packages" not in path.as_posix() \
+        and "dist-packages" not in path.as_posix()
+
+
+def _third_party_imports(directory):
+    """目录下全部 .py 里 import 的第三方顶层模块名。"""
+    found = {}
+    for path in sorted(directory.rglob("*.py")):
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        mods = set()
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    mods.add(alias.name.split(".")[0])
+            elif isinstance(node, ast.ImportFrom) and node.level == 0:
+                if node.module:
+                    mods.add(node.module.split(".")[0])
+        for mod in mods:
+            if mod in ("pflc", "tests") or _is_stdlib_module(mod):
+                continue
+            # 同目录工具间互相 import 的不算第三方
+            if (directory.name == "tools"
+                    and (ROOT / "tools" / ("%s.py" % mod)).is_file()):
+                continue
+            found.setdefault(mod, []).append(path.name)
+    return found
+
+
+def test_test_and_tool_imports_are_covered_by_readme_install_paths():
+    """**安装面 = 测试面 = README 指令面**（M6 DoD 第 2 条）。
+
+    三面必须对齐，任一缺口都会让"照 README 做"失败：
+
+      * 测试真 import 的库不在 extras 里 → 干净 venv 全量测试硬失败；
+      * README 让用户跑的工具所需的库不在 README 的安装通路里 → 用户照着做
+        到那一步才炸（M6 实测：README 引 ``make_demo_assets.py``（要 Pillow），
+        而 Pillow 所在的 ``demo`` extra 在 README 里**从没出现过**）。
+
+    判据落在**结构位置**（源码 AST 里的 import + pyproject 的 extras 块 +
+    README 的 ``pip install -e ".[...]"`` 行），不落"文件里出现过这串字"。
+    """
+    import re as _re
+
+    pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    extras = _extras_of(pyproject)
+    assert extras, "未能从 pyproject 解析出 extras = 判据空转"
+    assert "dev" in extras, "缺 dev extra"
+
+    # README 里真的出现过的安装通路（extras 名集合）
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    declared_paths = set()
+    for match in _re.finditer(r'pip install -e "\.\[([^\]]+)\]"', readme):
+        for name in match.group(1).split(","):
+            declared_paths.add(name.strip())
+    assert declared_paths, "README 里没有解析出安装通路 = 判据空转"
+
+    # 分发名 → extra（含别名归一到 import 名）
+    module_to_extra = {}
+    for extra, names in extras.items():
+        for name in names:
+            key = IMPORT_NAME_ALIASES.get(name, name)
+            module_to_extra.setdefault(key, set()).add(extra)
+
+    # 反向核对：tools/ 与 tests/ 真 import 的第三方模块
+    imported = {}
+    for area in ("tools", "tests"):
+        for mod, files in _third_party_imports(ROOT / area).items():
+            imported.setdefault(mod, []).extend(files)
+
+    uncovered_declared = []   # 库在 extras 里，但没有任何 README 安装通路覆盖它
+    uncovered_unknown = []    # 库连 extras 都没声明
+    for mod, files in sorted(imported.items()):
+        owners = module_to_extra.get(mod)
+        if not owners:
+            uncovered_unknown.append((mod, sorted(set(files))))
+            continue
+        if not (owners & declared_paths):
+            uncovered_declared.append((mod, sorted(owners), sorted(set(files))))
+
+    assert uncovered_unknown == [], (
+        "这些库被 tools/ 或 tests/ import，却没有任何 extra 声明：%s" % uncovered_unknown)
+    assert uncovered_declared == [], (
+        "这些库所在的 extra 在 README 里没有任何安装通路（照 README 做会缺库）：%s"
+        % uncovered_declared)

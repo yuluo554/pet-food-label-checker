@@ -188,6 +188,13 @@ python tools/make_release.py --dist dist --out release --ledger docs/DIST-sha256
 `docs/demo/`（6 页签截图 + GIF）由 `tools/make_demo_assets.py` **程序化产出**，
 两次独立生成的 sha256 逐个一致（`tools/check_demo_reproducible.py` → `DEMO_ASSETS_OK`）。
 
+**自己重生成演示物料**需要额外的 `demo` extra（GIF 合成用 Pillow）：
+
+```bash
+python -m pip install -e ".[demo]"     # 只要重生成演示物料时才需要
+python tools/make_demo_assets.py --out docs/demo
+```
+
 ![桌面应用演示](docs/demo/demo.gif)
 
 截图是**真实判定态**：灌入合成标签 → 点击"核验" → 出逐条结论；基准页含四套件实测值。
