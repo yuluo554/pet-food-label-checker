@@ -1,0 +1,83 @@
+{
+  "coverage": {
+    "claim": {
+      "note": "抽样覆盖、非逐因素穷举（M4 回填采样数与清单）",
+      "sample_list": [],
+      "sampled_in_truth": null,
+      "total_rules": 0,
+      "verified_rules": 0
+    },
+    "label": {
+      "note": "抽样覆盖、非逐因素穷举（M4 回填采样数与清单）",
+      "sample_list": [],
+      "sampled_in_truth": null,
+      "total_rules": 0,
+      "verified_rules": 0
+    },
+    "nutrition": {
+      "note": "抽样覆盖、非逐因素穷举（M4 回填采样数与清单）",
+      "sample_list": [],
+      "sampled_in_truth": null,
+      "total_rules": 0,
+      "verified_rules": 0
+    }
+  },
+  "files": {
+    "claim": "ruleset-claim.json",
+    "label": "ruleset-label.json",
+    "nutrition": "ruleset-nutrition.json"
+  },
+  "ruleset_version": "2026.1",
+  "sources": [
+    {
+      "captured_at": "2026-10-15",
+      "doc_id": "GB-T-31216-2014",
+      "doc_no": "GB/T 31216—2014",
+      "doc_title": "全价宠物食品 犬粮",
+      "issuer": "国家质量监督检验检疫总局 / 国家标准化管理委员会",
+      "sha256": "",
+      "url": "https://std.samr.gov.cn/"
+    },
+    {
+      "captured_at": "2026-10-15",
+      "doc_id": "GB-T-31217-2014",
+      "doc_no": "GB/T 31217—2014",
+      "doc_title": "全价宠物食品 猫粮",
+      "issuer": "国家质量监督检验检疫总局 / 国家标准化管理委员会",
+      "sha256": "",
+      "url": "https://std.samr.gov.cn/"
+    },
+    {
+      "captured_at": "2026-10-15",
+      "doc_id": "MOA-20-2018",
+      "doc_no": "农业农村部公告第20号",
+      "doc_title": "农业农村部公告第20号（加强宠物饲料管理）",
+      "issuer": "农业农村部",
+      "sha256": "",
+      "url": "https://law.foodmate.net/show-194580.html"
+    },
+    {
+      "captured_at": "2026-10-15",
+      "doc_id": "MOA-20-2018-ANNEX3",
+      "doc_no": "农业农村部公告第20号 附件3",
+      "doc_title": "宠物饲料标签规定（农业农村部公告第20号 附件3）",
+      "issuer": "农业农村部",
+      "sha256": "",
+      "url": "https://law.foodmate.net/show-194580.html"
+    },
+    {
+      "captured_at": "2026-10-15",
+      "doc_id": "MOA-210-2019",
+      "doc_no": "农业农村部公告第210号",
+      "doc_title": "农业农村部公告第210号（延长宠物饲料标签过渡期）",
+      "issuer": "农业农村部",
+      "sha256": "",
+      "url": "https://law.foodmate.net/show-197783.html"
+    }
+  ],
+  "thresholds": {
+    "max_false_positive": 0.0,
+    "max_runtime_sec": 5,
+    "min_accuracy": 0.95
+  }
+}

@@ -1,0 +1,406 @@
+"""判定引擎：三态判定 + 双重门控 + 维度聚合（纯确定性，零第三方依赖）。
+
+判定语义硬纪律（见 plan/03 D1，这是本项目最容易被攻击的"假合规"点）：
+
+    原文"应当 X"（无条件义务）→ 缺 X 记 noncompliant      # 绝不记 not_applicable
+    原文自带"不适用情形"    → 才允许 skipped
+    "没看到材料"            → unknown（不是 fail，但计入待人工确认）
+    一条规则都不适用        → 维度 not_assessed（绝不输出 compliant）
+
+单件与批量**共用同一分派点** ``check_card``——两条通路各写一套分派，
+会对同一文件给出不同结论（最隐蔽的口径漂移，见 plan/03 D17）。
+"""
+
+from __future__ import annotations
+
+from decimal import Decimal
+from pathlib import Path
+from typing import Dict, List, Optional, Sequence, Tuple
+
+from ..model import (
+    DIM_CLAIM,
+    DIM_LABEL,
+    DIM_NUTRITION,
+    DIMENSIONS,
+    EFFECT_CONDITIONAL,
+    EXCLUDE_NO_EFFECTIVE_RULES,
+    FIELD_PROVIDED,
+    OVERALL_NOT_ASSESSED,
+    VERDICT_COMPLIANT,
+    VERDICT_NONCOMPLIANT,
+    VERDICT_NOT_PROVIDED,
+    VERDICT_SKIPPED,
+    VERDICT_UNKNOWN,
+    CheckResult,
+    DimensionResult,
+    Finding,
+    LabelCard,
+)
+from ..rules import (
+    KIND_CLAIM_SUPPORT,
+    KIND_PRESENCE,
+    KIND_THRESHOLD,
+    Rule,
+    RulePack,
+    RulePackError,
+    load_pack,
+)
+
+#: 规则 ``applies_if`` 支持的门控键
+_GATE_KEYS = ("category", "life_stage")
+
+
+class EngineError(Exception):
+    """引擎层面的契约错误（如规则 kind 未知）。"""
+
+
+# --------------------------------------------------------------------------
+# 单规则判定
+# --------------------------------------------------------------------------
+
+
+def _judge_presence(rule: Rule, card: LabelCard) -> Finding:
+    """存在性判定：标示项是否提供。
+
+    无条件义务（``effect=obligation``）缺失 = **noncompliant**——
+    这是"没做绝不记成不用做"的落地（见 plan/03 D1）。
+    条件触发项（``effect=conditional``）缺失记 ``unknown``（待人工确认）。
+    """
+    field = card.field(rule.target)
+    if field is None:
+        # 规则指向的字段在档案里不存在：这是规则与模型的契约错位，显式报出
+        return Finding(
+            rule_id=rule.rule_id, dimension=rule.dimension, target=rule.target,
+            verdict=VERDICT_UNKNOWN, effect=rule.effect,
+            note="规则目标 %r 不在标签档案字段集内" % rule.target,
+            anchor=rule.anchor,
+        )
+
+    if field.status == FIELD_PROVIDED:
+        return Finding(
+            rule_id=rule.rule_id, dimension=rule.dimension, target=rule.target,
+            verdict=VERDICT_COMPLIANT, effect=rule.effect,
+            observed=field.render(), expected="已标示", anchor=rule.anchor,
+        )
+
+    # 未提供：区分"无条件义务缺失"与"条件触发项缺失"
+    if rule.effect == EFFECT_CONDITIONAL:
+        return Finding(
+            rule_id=rule.rule_id, dimension=rule.dimension, target=rule.target,
+            verdict=VERDICT_UNKNOWN, effect=rule.effect,
+            observed=field.render(), expected="条件触发，需人工确认",
+            note=field.reason, anchor=rule.anchor,
+        )
+
+    return Finding(
+        rule_id=rule.rule_id, dimension=rule.dimension, target=rule.target,
+        verdict=VERDICT_NONCOMPLIANT, effect=rule.effect,
+        observed=field.render(), expected="应当标示", note=field.reason,
+        anchor=rule.anchor,
+    )
+
+
+def _judge_threshold(rule: Rule, card: LabelCard) -> Finding:
+    """阈值判定：保证值 vs 限值（全程 Decimal）。
+
+    保证值缺失 → ``not_provided``（不是不符合——没给值 ≠ 值不达标）。
+    """
+    field = card.field(rule.target)
+    if field is None or not field.is_provided:
+        reason = field.reason if field is not None else "field_absent"
+        return Finding(
+            rule_id=rule.rule_id, dimension=rule.dimension, target=rule.target,
+            verdict=VERDICT_NOT_PROVIDED, effect=rule.effect,
+            observed="未提供", expected=_render_expected(rule),
+            note=reason, anchor=rule.anchor,
+        )
+
+    observed = field.value
+    if not isinstance(observed, Decimal):
+        try:
+            observed = Decimal(str(observed))
+        except Exception:
+            return Finding(
+                rule_id=rule.rule_id, dimension=rule.dimension, target=rule.target,
+                verdict=VERDICT_UNKNOWN, effect=rule.effect,
+                observed=str(field.value), expected=_render_expected(rule),
+                note="观测值无法作为数值比较", anchor=rule.anchor,
+            )
+
+    try:
+        ok = rule.compare(observed)
+    except RulePackError as exc:
+        return Finding(
+            rule_id=rule.rule_id, dimension=rule.dimension, target=rule.target,
+            verdict=VERDICT_UNKNOWN, effect=rule.effect,
+            observed=str(observed), expected=_render_expected(rule),
+            note=str(exc), anchor=rule.anchor,
+        )
+
+    return Finding(
+        rule_id=rule.rule_id, dimension=rule.dimension, target=rule.target,
+        verdict=VERDICT_COMPLIANT if ok else VERDICT_NONCOMPLIANT,
+        effect=rule.effect,
+        observed=_render_value(observed, field.unit),
+        expected=_render_expected(rule), anchor=rule.anchor,
+    )
+
+
+def _judge_claim_support(rule: Rule, card: LabelCard) -> Finding:
+    """宣称条件齐备性核查。
+
+    **不做语义硬判**——只查"宣称存在 → 其适用条件所要求的信息支撑是否齐备"。
+    "配料是否确为天然"这类语义问题不判（见 plan/04 §四.1）。
+    """
+    claim_present = rule.target in card.claim_names()
+    if not claim_present:
+        # 宣称不存在 → 该规则不适用（这是"原文写了适用前提"的情形：
+        # 规则的前提是"该宣称存在"，未宣称即前提不成立 → skipped 而非 noncompliant）
+        return Finding(
+            rule_id=rule.rule_id, dimension=rule.dimension, target=rule.target,
+            verdict=VERDICT_SKIPPED, effect=rule.effect,
+            observed="未宣称", expected="未宣称时不适用", anchor=rule.anchor,
+        )
+
+    missing = [name for name in rule.required_support
+               if not _support_present(card, name)]
+    if missing:
+        return Finding(
+            rule_id=rule.rule_id, dimension=rule.dimension, target=rule.target,
+            verdict=VERDICT_NONCOMPLIANT, effect=rule.effect,
+            observed="已宣称但支撑信息不齐备",
+            expected="需齐备：" + "、".join(rule.required_support),
+            note="缺少：" + "、".join(missing), anchor=rule.anchor,
+        )
+    return Finding(
+        rule_id=rule.rule_id, dimension=rule.dimension, target=rule.target,
+        verdict=VERDICT_COMPLIANT, effect=rule.effect,
+        observed="已宣称且支撑信息齐备",
+        expected="需齐备：" + "、".join(rule.required_support),
+        anchor=rule.anchor,
+    )
+
+
+def _support_present(card: LabelCard, name: str) -> bool:
+    """支撑信息是否齐备。字段名经档案统一查询入口解析。"""
+    field = card.field(name)
+    return bool(field is not None and field.is_provided)
+
+
+def _render_value(value: Decimal, unit: Optional[str]) -> str:
+    text = str(value.normalize())
+    return "%s %s" % (text, unit) if unit else text
+
+
+def _render_expected(rule: Rule) -> str:
+    if rule.op is None or rule.value is None:
+        return ""
+    text = "%s %s" % (rule.op, rule.value.normalize())
+    return "%s %s" % (text, rule.unit) if rule.unit else text
+
+
+_JUDGES = {
+    KIND_PRESENCE: _judge_presence,
+    KIND_THRESHOLD: _judge_threshold,
+    KIND_CLAIM_SUPPORT: _judge_claim_support,
+}
+
+
+# --------------------------------------------------------------------------
+# 维度判定
+# --------------------------------------------------------------------------
+
+
+def judge_dimension(pack: RulePack, card: LabelCard) -> DimensionResult:
+    """对单维度跑全部生效规则。
+
+    适用性筛选：``applies_if`` 未命中的规则**不参与**——但维度是否"未评估"
+    取决于**有没有生效规则**（而非有没有适用规则），见下方 excluded/not_assessed 区分。
+    """
+    result = DimensionResult(dimension=pack.dimension)
+    effective = pack.effective()
+
+    if not effective:
+        # 零生效规则 → 该维度不参与聚合，理由显式记录（见 plan/03 D4）
+        result.excluded = True
+        result.exclude_reason = EXCLUDE_NO_EFFECTIVE_RULES
+        return result
+
+    category = card.category_value()
+    life_stage = card.life_stage_value()
+
+    applicable: List[Rule] = []
+    for rule in effective:
+        if rule.applies_to(category, life_stage):
+            applicable.append(rule)
+
+    if not applicable:
+        # 有生效规则但本条输入无适用项 → not_assessed（绝不输出 compliant）
+        result.not_assessed = True
+        return result
+
+    findings: List[Finding] = []
+    for rule in applicable:
+        judge = _JUDGES.get(rule.kind)
+        if judge is None:
+            raise EngineError("规则 %s 的 kind=%r 无判定实现" % (rule.rule_id, rule.kind))
+        findings.append(judge(rule, card))
+
+    result.findings = findings
+    return result
+
+
+# --------------------------------------------------------------------------
+# 全维度判定（单一分派点）
+# --------------------------------------------------------------------------
+
+
+def check_card(card: LabelCard, rules_dir: Path,
+               scope: str = "all") -> CheckResult:
+    """**唯一分派点**：对一张标签档案跑全维度判定。
+
+    单件（``check_file``）与批量（``scan_dir``）都必须经此函数——
+    两条通路各写一套分派 = 对同一文件给出不同结论。
+    """
+    if scope == "all":
+        dims: Sequence[str] = DIMENSIONS
+    else:
+        dims = (scope,)
+
+    results: List[DimensionResult] = []
+    pending: List[str] = []
+    for dim in dims:
+        pack = load_pack(dim, rules_dir)
+        pending.extend(r.rule_id for r in pack.pending())
+        results.append(judge_dimension(pack, card))
+
+    return CheckResult(
+        card_id=card.card_id,
+        source=card.source,
+        dimensions=results,
+        pending_rules=sorted(set(pending)),
+    )
+
+
+def check_file(path: Path, rules_dir: Path, scope: str = "all") -> CheckResult:
+    """单件核验。读取失败抛 ``OSError``，由调用方按"未判定"处置。"""
+    from ..parse import parse_label
+
+    text = Path(path).read_text(encoding="utf-8")
+    card = parse_label(text, source=Path(path).name)
+    return check_card(card, rules_dir, scope=scope)
+
+
+# --------------------------------------------------------------------------
+# 批量 + 两轮对账
+# --------------------------------------------------------------------------
+
+#: 对账四类集
+DELTA_NEW = "new_violation"          #: 新增违规
+DELTA_FIXED = "fixed"                #: 已修复
+DELTA_PERSISTENT = "persistent"      #: 持续违规
+DELTA_STABLE = "stable"              #: 稳定（两轮同结论）
+DELTA_CONTENT_CHANGED = "content_changed"  #: 内容变化但结论未变（另立标记，不退化）
+
+#: 失败件类型（**未判定**，不是违规，见 plan/03 D17）
+KIND_OK = "ok"
+KIND_FAILED = "failed"
+
+#: 单件输入大小上限（安全阀，防超大输入整体读入内存）
+MAX_INPUT_BYTES = 4 * 1024 * 1024
+
+
+def _violation_keys(result: CheckResult) -> set:
+    """违规键集：``(维度, 规则 id)``——**非 pass 但排除 skipped/unknown**。
+
+    ``skipped``（不适用）与 ``unknown``（未观测）**不算违规**：
+    前者是原文写了例外，后者是"没看到"而非"缺失"。
+    """
+    keys = set()
+    for finding in result.all_findings():
+        if finding.verdict == VERDICT_NONCOMPLIANT:
+            keys.add((finding.dimension, finding.rule_id))
+    return keys
+
+
+def compare_rounds(previous: Dict[str, set],
+                   current: Dict[str, set]) -> Dict[str, List[str]]:
+    """两轮对账（配对主键 = **稳定身份键**，不用内容指纹，见 plan/03 D18）。
+
+    配对逻辑分两步，缺一不可：
+      ① **配对**：按稳定身份键（``file:<相对路径>``）把两轮的同一件对上——
+         用内容指纹配对时，"已修复"必然内容变了 → 永远配不上 → **永远检不出已修复**；
+      ② **判定**：配对成功的件再按**违规条目**比对（不是"键在不在"）——
+         上一轮有、本轮无 → ``fixed``；两轮都有 → ``persistent``；本轮新出现 → ``new``。
+
+    返回的是**违规条目级**的键（``file:xxx::维度/规则id``），这样"已修复"
+    能指明是哪条规则不再触发了，而不只是"这个文件变好了"。
+    键存在 ≠ 有违规——把"键在不在"当判据会让 fixed 恒为空集。
+    """
+    def _expand(pairs: Dict[str, set]) -> Dict[str, set]:
+        out: Dict[str, set] = {}
+        for file_key, violations in pairs.items():
+            for dim, rule_id in violations:
+                out["%s::%s/%s" % (file_key, dim, rule_id)] = {file_key}
+        return out
+
+    prev_items = _expand(previous)
+    cur_items = _expand(current)
+
+    new_items = sorted(set(cur_items) - set(prev_items))
+    fixed_items = sorted(set(prev_items) - set(cur_items))
+    persistent_items = sorted(set(prev_items) & set(cur_items))
+    # stable = 两轮都无违规的件（按件计，不按违规条目计）
+    stable_files = sorted(
+        k for k in set(previous) & set(current)
+        if not previous[k] and not current[k]
+    )
+    return {
+        DELTA_NEW: new_items,
+        DELTA_FIXED: fixed_items,
+        DELTA_PERSISTENT: persistent_items,
+        DELTA_STABLE: stable_files,
+    }
+
+
+def scan_dir(directory: Path, rules_dir: Path,
+             baseline: Optional[Dict[str, set]] = None) -> Dict[str, object]:
+    """批量扫描 + 可选两轮对账。
+
+    两条退出码纪律（见 plan/03 D17）：
+      * **失败件 ≠ 违规**——坏文件记 ``failed``，**不改变退出码**；
+      * **失败隔离**——单件异常不中断整批。
+    """
+    directory = Path(directory)
+    if not directory.is_dir():
+        raise EngineError("目录不存在：%s" % directory)
+
+    items: List[Dict[str, object]] = []
+    current: Dict[str, set] = {}
+    for path in sorted(directory.glob("*.txt")):
+        entry: Dict[str, object] = {"file": path.name, "kind": KIND_OK}
+        try:
+            if path.stat().st_size > MAX_INPUT_BYTES:
+                entry["kind"] = KIND_FAILED
+                entry["error"] = "input_too_large"
+                items.append(entry)
+                continue
+            result = check_file(path, rules_dir)
+            entry["card_id"] = result.card_id
+            entry["overall"] = result.overall()
+            violations = _violation_keys(result)
+            entry["violations"] = sorted("%s/%s" % k for k in violations)
+            current["file:%s" % path.name] = violations
+        except (OSError, UnicodeDecodeError, ValueError) as exc:
+            # 失败隔离：记录后继续，不中断整批
+            entry["kind"] = KIND_FAILED
+            entry["error"] = "%s: %s" % (type(exc).__name__, exc)
+        items.append(entry)
+
+    out: Dict[str, object] = {"items": items, "total": len(items)}
+    out["failed"] = sum(1 for i in items if i["kind"] == KIND_FAILED)
+    out["has_violation"] = any(bool(i.get("violations")) for i in items)
+    if baseline is not None:
+        out["delta"] = compare_rounds(baseline, current)
+    out["current"] = current
+    return out

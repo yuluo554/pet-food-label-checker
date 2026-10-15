@@ -1,0 +1,11 @@
+# 演示物料 sha256 留档（M0）
+# 生成器：tools/make_demo_assets.py --out docs/demo
+# 验收：两次独立生成全部文件 sha256 逐个一致（已实测 DEMO_ASSETS_REPRODUCIBLE）
+
+4a57db8381ad80f2fafa10d2aec5ebb6744b8b119b30edd6d81dc3eaf6a08372  demo.gif
+4fb644977d3e5f86d3b8abfdd6293aad8444b93252f0a22bca9c038c1ef98e21  tab-0.png
+8f0863907d6cc793c9c2d86d4cfddee9417e24faf3befb22063d02adf4377f78  tab-1.png
+73c40c6822c7f21d5d262611b6ecf9457d7054c8831d145f54e7edbe7d6ecdc5  tab-2.png
+cbafb2676675998fb1f3abac0f31c9e2139afee5803afc082254cfbdcc867c57  tab-3.png
+3f5c97673a5749af04cdccef583c88b557c472f72f5d26dfb16c8eb03955665c  tab-4.png
+49d219b6c43d8a4c0acd3cb06bc202b7e027406c3903780230f7c56abb85ea06  tab-5.png

@@ -1,0 +1,70 @@
+name: ci
+
+# 四矩阵：windows×{3.8,3.12} + ubuntu×{3.12}
+#   3.8 是项目底线（老解释器只在 windows 守）；
+#   ubuntu 守 Linux 通路（编码/路径/系统库差异）。
+on:
+  push:
+  pull_request:
+
+# 编码三层加固的第一层：CI 全局 UTF-8。
+# 本机习惯 `py -X utf8` 只救"我们敲的那条命令"，救不了 CI 步骤
+# （`python -m pytest` 不是我们敲的）——见 plan/07 K22。
+env:
+  PYTHONUTF8: "1"
+  PYTHONIOENCODING: "utf-8"
+
+jobs:
+  test:
+    name: test (${{ matrix.os }} / py${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            python-version: "3.8"
+          - os: windows-latest
+            python-version: "3.12"
+          - os: ubuntu-latest
+            python-version: "3.12"
+    steps:
+      # fetch-depth: 0 —— 历史扫描类守门测试需要完整历史，
+      # 浅克隆会把它静默削弱成空验（有守门测试断言每个 checkout 都设了 0）。
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      # 老解释器自带的老 pip 无法可编辑安装 pyproject-only 项目
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
+
+      # 测试面 = 安装面：这里装的 extras 必须覆盖测试真 import 的每个库
+      # （含 pyyaml —— CI workflow 解析守门测试需要它）
+      - name: Install (dev extras)
+        run: python -m pip install -e ".[dev]"
+
+      - name: Show environment
+        run: python -c "import sys, platform; print(sys.version); print(platform.platform())"
+
+      - name: Run tests
+        run: python -m pytest -q -ra
+
+      # 生成器位级一致守门（防手改冻结产物）
+      - name: Frozen ruleset check
+        run: python tools/gen_rulesets.py --check
+
+      - name: Frozen samples check
+        run: python tools/gen_samples.py --check
+
+      # 脱敏审计器阳性/阴性对照（证明扫描器真的在扫）
+      - name: Desensitize auditor selftest
+        run: python tools/audit_desensitize.py --selftest
+
+      # 端到端冒烟：显式断言每条的期望退出码（不用 `|| true` 吞失败）
+      - name: CLI smoke
+        run: python tools/smoke_cli.py

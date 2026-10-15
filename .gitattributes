@@ -1,0 +1,16 @@
+# 源码行尾归一：克隆到任何平台都保持 LF，保证字节冻结产物与源码的 sha256 稳定。
+* text=auto eol=lf
+
+# 被数据台账登记过 sha256 的快照必须 -text：
+# 否则克隆时字节被行尾归一化，台账里的 sha256 失配（git status 看不出来）。
+data/knowledge/raw/** -text
+*.pdf binary
+*.ceb binary
+*.docx binary
+*.xlsx binary
+*.png binary
+*.gif binary
+
+# 字节冻结 fixtures：位级一致守门测试的比对对象，禁止行尾改写。
+data/benchmark/** -text
+data/rules/** -text

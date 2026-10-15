@@ -17,6 +17,11 @@ reports/
 *.log
 .tmp/
 *.bak
+selftest.json
+
+# 隔离的包管理器 store（本地验证用）
+.clean-store/
+.clean-venv/
 
 # 环境与密钥
 .env

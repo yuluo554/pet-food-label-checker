@@ -1,11 +1,270 @@
-# 10-15-pet-food-label-checker
+# 宠物食品标签合规比对器
 
-宠物食品标签合规比对器（猫犬粮）——把《宠物饲料标签规定》强制标示项和 GB/T 31216/31217 营养限值做成**规则引擎**，逐项判定 + 附条款锚点，内置合成标签基准可复现评测，比"AI 点评配料表"可验证。
+**猫犬粮标签的国标口径合规规则引擎** —— 把《宠物饲料标签规定》的强制标示要求与 GB/T 31216/31217 的营养限值编码成**结构化规则**，对标签文本逐项给出**三态结论 + 条款锚点**，内置**合成标签基准**可复现评测。
 
-> 纯本地零上传 | PySide6 桌面 exe + CLI 双形态 | 合成标签基准，零真实品牌 | 免责声明：输出为合规检查发现，不构成合格判定/检测结论/兽医意见。
+> 纯本地零上传 · PySide6 桌面 exe + CLI 双形态 · 合成标签基准，零真实品牌 · **不使用 LLM**，结论 100% 由确定性规则产生
 
-- 题目文档：[plan/01-题目文档.md](plan/01-题目文档.md)
-- 项目总览与决策记录：[plan/00-README总览.md](plan/00-README总览.md)
-- 数据台账（依据查证三态记录）：[data/README.md](data/README.md)
+[![ci](https://github.com/yuluo554/pet-food-label-checker/actions/workflows/ci.yml/badge.svg)](https://github.com/yuluo554/pet-food-label-checker/actions/workflows/ci.yml)
 
-**状态**：出题阶段（题面 v1 定稿 2026-10-14，项目计划启动）。
+> **状态**：🚧 M0 骨架已就绪（计划文档 + 可运行骨架 + 测试 + CI）。**规则包待 M1 数据录入与逐条原文核对**——未挂原文核对的规则（`status=pending`）不进入判定路径，报告会显式列出。
+
+---
+
+## 为什么需要它
+
+养宠人核验一袋猫犬粮的标签，面对三个具体困难：
+
+1. **标示项易漏** —— 通用名、成分分析保证值、原料组成、添加剂、净含量、生产者信息等强制标示项是否齐全，肉眼逐条对照规定必然漏项；
+2. **限值无从判定** —— "粗蛋白 ≥26%" 到底达没达到国标对应生命阶段的限值，标准正文普通人拿不到也读不懂；
+3. **宣称无据** —— "天然粮""无谷粮"是受规定约束的限定用语，营销话术是否越界无从判断。
+
+商业侧的"AI 点评配料表"输出一段话，**不可复现、无条款依据**。本工具的做法是：把散在法规与国标里的**可机器判定的条款**抽成规则包，用**确定性引擎**逐项给出**带条款锚点的三态结论**。
+
+**LLM 聊天给不了的四件事**：持久的条款规则库（口径不漂移）、逐项三态结论、可复现基准、可核证的条款锚点。
+
+---
+
+## 架构
+
+```mermaid
+flowchart TD
+    subgraph 交付形态
+        CLI[CLI: pflc<br/>check/scan/bench/report/diagnostics/selftest]
+        GUI[GUI: PySide6 多页签<br/>零判定逻辑]
+    end
+
+    subgraph 编排层
+        PIPE[pflc.pipeline<br/>公开函数组 · 唯一入口]
+    end
+
+    subgraph 判定内核 纯确定性 零第三方依赖
+        PARSE[parse<br/>文本 → LabelCard]
+        RULES[rules<br/>双重门控 + 零字面量 token 实算]
+        ENGINE[engine<br/>三态判定 + 维度聚合]
+        REPORT[report<br/>单一渲染源 md + csv]
+    end
+
+    subgraph 数据层 冻结产物 禁手改
+        RP[data/rules/<br/>ruleset-label/nutrition/claim.json]
+        KB[data/knowledge/<br/>原文快照 + 条文块]
+        SAMP[data/samples/<br/>README 可跑夹具]
+        BENCH[data/benchmark/<br/>合成标签 + 植入真值]
+    end
+
+    CLI --> PIPE
+    GUI --> PIPE
+    PIPE --> PARSE --> RULES --> ENGINE --> REPORT
+    KB --> RP
+    RP --> RULES
+    BENCH --> ENGINE
+    SAMP --> CLI
+```
+
+**分层纪律**：判定逻辑**只有一份实现**，就在编排层之下；CLI 与 GUI 都是"取数 + 渲染"的薄壳。GUI 层"零判定逻辑"由 **AST 静态门禁**守住（三条齐上：不 import 规则层 + 无算术运算 + 无政策数值字面量）。
+
+---
+
+## 快速开始
+
+```bash
+# 1) 建虚拟环境（Windows 上用 py 启动器；venv 内一律用 python -m 调 pip，
+#    因为 py 启动器会无视已激活的 venv）
+py -m venv .venv
+.venv\Scripts\activate          # Linux/macOS: source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -e ".[dev]"
+
+# 2) 看规则与数据状态
+python -m pflc.cli diagnostics
+
+# 3) 核验一份标签
+python -m pflc.cli check data/samples/label-demo-ok.txt -v
+
+# 4) 跑内置基准
+python -m pflc.cli bench
+
+# 5) 导出双轨报告（Markdown 人读 + CSV 机读）
+python -m pflc.cli report data/samples/label-demo-missing.txt --out output/
+
+# 6) 桌面应用（需额外装 GUI 依赖）
+python -m pip install -e ".[gui]"
+python -m pflc.cli gui
+```
+
+### 退出码语义
+
+| 码 | 含义 |
+|---|---|
+| `0` | 无不符合 / 达标 |
+| `1` | 检出不符合 / 基准未达标 / 有未生效规则被门控拦下 |
+| `2` | 输入、坐标或用例名错误 |
+| `3` | 缺可选依赖（GUI） |
+
+> 退出码非 0 **不等于**跑挂。判据是"符合上表声明过的契约"。
+
+### 可直接复制的示例输入
+
+仓库自带四份合成夹具（由 `tools/gen_samples.py` 产出，纳入位级一致守门）：
+
+| 文件 | 植入情形 |
+|---|---|
+| `data/samples/label-demo-ok.txt` | 全部强制项齐备、保证值达标 |
+| `data/samples/label-demo-missing.txt` | 缺净含量 / 生产者 / 添加剂 |
+| `data/samples/label-demo-overlimit.txt` | 保证值低于限值 |
+| `data/samples/label-demo-claim.txt` | 宣称"天然、无谷"但缺原料组成支撑 |
+
+---
+
+## 核心机制
+
+### 三态判定 + 两种"非结论"
+
+结论只有三态：`符合` / `不符合` / `未提供`。此外两种**非结论**必须可区分：
+
+| 状态 | 语义 | 判据 |
+|---|---|---|
+| `skipped` | **不适用** | 只给"原文明确写了例外情形"的项；**绝不用于"缺材料/用户没做"** |
+| `unknown` | **未观测** | "没看到"而非"缺失"，不计违规但计入待人工确认 |
+
+三条硬纪律：
+
+- **无条件义务缺失 = 不符合** —— 原文写"应当标示 X"而缺 X，记不符合。**"没做"绝不记成"不用做"**（那会让合规结论虚高）；
+- **一条规则都不适用 → 该维度"未评估"**，绝不输出成"符合"（"没查出问题"与"没检查过"必须可区分）；
+- **零生效规则的维度不参与聚合**，并显式记录原因码——否则会把整体结论无谓拉成"未评估"。
+
+### 双重门控
+
+每条规则挂**两个独立状态**：
+
+| 字段 | 语义 | 作用 |
+|---|---|---|
+| `status` | **数值**核对状态 | **唯一门控判定路径**的开关 |
+| `clause_status` | **条款号**核对状态 | 只管可证性展示，不阻断判定 |
+
+耦合成单一状态的两个失败方向：条款号核不到 → 已核对数值也被无谓阻断；只看数值 → "条款号没核对却看起来已核对"。两个状态都在报告里显式可见。
+
+门控还**按计算路径分作用域**（`label` / `nutrition` / `claim`），各只校验自己引用的条目。
+
+### 数值口径一处定义
+
+限值数值**只存在于规则包**一处，判定、报告、基准全部引用它。配套**零政策字面量门禁**：把全部规则包数值收编为禁用 token（**运行时实算，不写死在扫描器里**），扫描引擎/基准/CLI/GUI 源码，**含 docstring 与注释**。
+
+### 规则包是冻结产物
+
+改需求走 `tools/gen_rulesets.py` 整目录重生成，配 `--check` 位级一致守门——规则包一旦可手改，"引擎对不对"就永远无法与"数据对不对"分离。
+
+---
+
+## 评测
+
+基准四套件，一条命令跑全（`python -m pflc.cli bench`）：
+
+| 套件 | 类型 | 测什么 |
+|---|---|---|
+| `detection` | 样本驱动 | 违规检出率 + 误报率 |
+| `overall` | 样本驱动 | 整体结论一致率 |
+| `boundary` | **规则驱动** | 从规则表推导限值端点，做 ±0.01 邻域断言 |
+| `traceability` | 结构性 | 锚点可解析率 |
+
+三条配套纪律：
+
+- **样本驱动 + 规则驱动两层** —— 样本驱动只证明"在真值库覆盖的样本上对"；规则驱动不读真值库，证明"在*所有*有限端点上对"；
+- **验收门槛随 manifest 下发**（数据非代码）—— 门槛内联在引擎里就是"抄进代码的第二份真相"；缺失即报配置错误，**不回落代码默认值**；
+- **每套件配探活测试** —— 注入缺陷后基准必须报未达标；且期望锚定冻结真值（不与引擎共用通路），否则探活是永远绿的假门。
+
+**空分母不冒充通过**：零样本时 `not_enabled=true` + notes 声明"该类用例未生成" + **exit 1**（`hits(0) <= max(0)` 恒真就是假门）。
+
+> **当前状态**：规则包为空（M1 待录入），故四套件全部 `NOT_ENABLED`、`bench` 返回 exit 1。这是**如实状态**，不是缺陷——"没查"与"查了没问题"必须可区分。
+
+---
+
+## 数据来源与纪律
+
+| 依据 | 编号 | 状态 |
+|---|---|---|
+| 宠物饲料标签规定 | 农业农村部公告第 20 号 附件 3 | ✅ 权威转载可读；⬜ 条款逐条核对待 M1 |
+| 标签过渡期延长 | 农业农村部公告第 210 号 | ✅ 权威转载可读（标签强制标示自 2020-03-01 全量执行） |
+| 全价宠物食品 犬粮 | GB/T 31216—2014 | ✅ 现行无迭代；⬜ 全文数值表待 M1 浏览器录入 |
+| 全价宠物食品 猫粮 | GB/T 31217—2014 | ✅ 同上 |
+
+- **数值规则条数不预设硬数字** —— 以全文录入逐条核对后的条目为准；
+- **未挂原文核对不得生效** —— `status=pending` 的规则不进判定路径；
+- **演示与基准一律合成标签** —— 假品牌名白名单（"测试粮A"…），禁止真实品牌入库为基准样例；
+- **真值样例严格隔离** —— 公开实测保证值仅作录入核对参照，不入基准真值库。
+
+详见 [data/README.md](data/README.md)（数据台账：来源/许可/三态/sha256/基准日）。
+
+---
+
+## 目录结构
+
+```
+plan/          计划文档（00 总览 / 01 题面 / 02 需求 / 03 架构 / 04 详设 / 05 数据 / 06 里程碑 / 07 对标与决策）
+data/          数据层（knowledge 原文快照 / rules 冻结规则包 / samples 夹具 / benchmark 真值库）
+src/pflc/      主包（model / parse / rules / engine / report / pipeline / cli / gui / benchmark）
+tools/         生成器与守门脚本（gen_rulesets / gen_samples / audit_desensitize / verify_frozen / smoke_cli / pflc.spec）
+tests/         测试（含零字面量门禁 / AST 分层门禁 / EOL 门禁 / 探活变异验证）
+docs/          技术报告与演示物料
+```
+
+---
+
+## 限制（请先读这一节）
+
+- **首期只接贴文本** —— 不做图片 OCR，不做多语言标签；
+- **只做"可机器判定"的核查** —— 文本型条款（用语格式、字号级别）只判"是否提供/是否含关键词"，**自由文本语义不做硬判**；"配料是否确为天然"这类语义问题**不判**，只核查"宣称存在 → 其适用条件所要求的信息支撑是否齐备"；
+- **不做**喂食建议、营养配方推荐、健康诊断、疾病与过敏判断、电商比价、监管申报对接；
+- **规则覆盖以录入核对进度为准** —— 未核对条目在报告"未启用清单"里显式列出，不静默省略；
+- **AAFCO/FEDIAF 横向对照、旧版标签三态对照、卫生规定限量包、图片 OCR** 均为扩展项，首期不承诺交付。
+
+### 免责声明
+
+**本软件输出为基于公开法规条款与国家标准限值的合规检查发现，不构成产品合格判定、检测结论或行政认定，也不构成兽医意见。正式结论以具备资质的检验检测机构报告与主管部门口径为准；宠物健康问题以执业兽医意见为准。**
+
+---
+
+## 已知环境问题
+
+| 现象 | 原因与处置 |
+|---|---|
+| 3.8 上 `pip install -e .` 失败 | py3.8 自带 pip 20.2.3 无法可编辑安装 pyproject-only 项目 → 先 `python -m pip install --upgrade pip`（README 已含该行） |
+| `py` 启动器无视已激活的 venv | 本机已知行为 → README 的 venv 段落一律用 `python -m pip ...` |
+| 中文在控制台显示乱码 | 入口已按 `stream.encoding` 探针 reconfigure；若仍异常，用 `py -X utf8` 跑 |
+| GUI 依赖装不上（3.8） | PySide6 6.7+ 元数据要求 Python ≥3.9；3.8 上实测可解析最高版为 6.6.3.1（extras 已写 `>=6.5,<6.7`） |
+| 打包 GUI 崩在 `Instruction object is not iterable` | PyInstaller 5.x 无法扫 PySide6 字节码 → 打 GUI 必须 PyInstaller ≥6（`build` extra 已按 Python 版本分档） |
+| `tools/pflc.spec` 未入仓 | `.gitignore` 的 `*.spec` 通配会吞掉它 → 已加 `!tools/*.spec` 例外 |
+
+---
+
+## 开发
+
+```bash
+python -m pytest -q                     # 全量测试
+python tools/gen_rulesets.py --check    # 规则包位级一致守门
+python tools/gen_samples.py --check     # 夹具位级一致守门
+python tools/audit_desensitize.py --selftest   # 脱敏审计器阳性/阴性对照
+python tools/smoke_cli.py               # CLI 端到端（断言退出码契约）
+```
+
+CI 四矩阵：`windows×{3.8,3.12} + ubuntu×{3.12}`。
+
+---
+
+## 计划文档
+
+| 文档 | 内容 |
+|---|---|
+| [plan/00-README总览.md](plan/00-README总览.md) | 项目总览、决策记录、承诺-证据台账 |
+| [plan/01-题目文档.md](plan/01-题目文档.md) | 题目全文（介绍/任务/材料/评分/锚点/边界） |
+| [plan/02-需求解读.md](plan/02-需求解读.md) | 痛点→能力转译、FR 清单、边界与非目标 |
+| [plan/03-架构与技术选型.md](plan/03-架构与技术选型.md) | 分层架构、技术选型、关键设计决策 |
+| [plan/04-模块详设.md](plan/04-模块详设.md) | 逐模块接口与判定语义 |
+| [plan/05-数据计划.md](plan/05-数据计划.md) | 数据先行、规则包形态、基准真值语义 |
+| [plan/06-里程碑.md](plan/06-里程碑.md) | M0–M6 目标/DoD/风险降级 |
+| [plan/07-交付对标与决策记录.md](plan/07-交付对标与决策记录.md) | 评分对标、决策记录、既定口径清单 |
+
+---
+
+## 许可
+
+MIT，见 [LICENSE](LICENSE)。
