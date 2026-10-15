@@ -6,9 +6,11 @@
 
 [![ci](https://github.com/yuluo554/pet-food-label-checker/actions/workflows/ci.yml/badge.svg)](https://github.com/yuluo554/pet-food-label-checker/actions/workflows/ci.yml)
 
-> **状态**：✅ **M0–M5 已完成**——判定引擎三模块（标示项 / 营养限值 / 宣称核查）齐备，规则包 **45 条**（`label` 8 / `nutrition` 32 / `claim` 5，其中 **43 条已挂原文核对、2 条 `pending`**）。基准四套件**全部达标**，且期望来源可核证：真值库 `data/benchmark/cases.json`（16 用例）入仓、基准真的读它、`gen_cases.py --check` 位级守门。桌面交付为 **onedir 双 exe**（GUI 111 MB / CLI 17 MB，两树均过冻结态验收）。未挂原文核对的规则不进入判定路径，报告会显式列出。
+> **状态**：✅ **M0–M6 已完成并发布**——判定引擎三模块（标示项 / 营养限值 / 宣称核查）齐备，规则包 **45 条**（`label` 8 / `nutrition` 32 / `claim` 5，其中 **43 条已挂原文核对、2 条 `pending`**）。基准四套件**全部达标**，且期望来源可核证：真值库 `data/benchmark/cases.json`（16 用例）入仓、基准真的读它、`gen_cases.py --check` 位级守门。桌面交付为 **onedir 双 exe**（GUI 111 MB / CLI 17 MB，两树均过冻结态验收）。未挂原文核对的规则不进入判定路径，报告会显式列出。
 >
-> **本地等价校验通过**（Python 3.8 与 3.12 双解释器 **295 项测试** + **七道 OK 标记门**（`TRANSCRIBE_OK` / `FROZEN_RULESET_OK` / `FROZEN_CASES_OK` / `FROZEN_SAMPLES_OK` / `DESSENSITIZE_AUDIT_OK` / `SMOKE_CLI_OK` / `RELEASE_PACK_OK`）+ 基准四套件达标）；**未接远端，CI 待首推验证**——未推送 = 未跑 CI。
+> **验证**：Python 3.8 与 3.12 双解释器 **297 项测试** + **九道 OK 标记门**（`TRANSCRIBE_OK` / `FROZEN_RULESET_OK` / `FROZEN_CASES_OK` / `FROZEN_SAMPLES_OK` / `DESSENSITIZE_AUDIT_OK` / `SMOKE_CLI_OK` / `RELEASE_PACK_OK` / `VERIFY_FROZEN_OK` / `DEMO_ASSETS_OK`）+ 基准四套件达标；**CI 四矩阵 + `package` job 全绿**（[run 记录](https://github.com/yuluo554/pet-food-label-checker/actions)）。
+>
+> **发布**：[Release `v0.1.0`](https://github.com/yuluo554/pet-food-label-checker/releases/tag/v0.1.0)（两个 zip 附件，sha256 见 [`docs/DIST-sha256-M6.txt`](docs/DIST-sha256-M6.txt)）。发布记录与复跑手册见 [`plan/HANDOFF-FINAL.md`](plan/HANDOFF-FINAL.md)。
 
 ---
 

@@ -117,7 +117,7 @@ git config user.email
 
 | 时点 | 实测 |
 |---|---|
-| 重写前 | `[REDACTED-PRIVATE-EMAIL]`（私人邮箱，出现在**全部 12 个提交**的作者+提交者字段） |
+| 重写前 | 私人邮箱（QQ 域名，出现在**全部 12 个提交**的作者+提交者字段；词面故意不在此复写——写它就是又把它公开了一次） |
 | 重写后 | `282769740+yuluo554@users.noreply.github.com`（GitHub noreply 形态） |
 | 本地 `user.email` | 已同步改为 noreply，防后续提交写回 |
 
