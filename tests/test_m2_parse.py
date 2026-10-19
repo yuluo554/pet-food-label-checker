@@ -442,7 +442,8 @@ def test_vocabulary_order_does_not_change_claims():
 # --------------------------------------------------------------------------
 
 #: 仓库夹具目录（由 tools/gen_samples.py 产出并纳入位级一致守门）
-SAMPLES_DIR = Path(__file__).resolve().parent.parent / "data" / "samples"
+SAMPLES_DIR = (Path(__file__).resolve().parent.parent
+               / "src" / "pflc" / "data" / "samples")
 
 
 def test_fixtures_cover_every_fr01_field():

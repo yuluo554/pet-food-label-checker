@@ -2,9 +2,15 @@
 
 退出码三语义（锁进测试，见 plan/03 D14 / plan/07 K7）：
     0 = 达标 / 无不符合
-    1 = 未达标 / 检出不符合 / 有 pending 门控拦截
+    1 = 未达标 / 检出不符合 / 有 pending 门控拦截 / **未评估**（DEC3 = B）
     2 = 输入、坐标或用例名错误
     3 = 缺可选依赖（GUI）
+
+**为什么"未评估"必须非 0**（DEC3 = B，2026-10-20）：零生效规则时
+``check`` 输出"整体结论：未评估"，若退出码仍是 0，"没检查过"与
+"检查过没问题"在脚本眼里**无法区分**——而 README 自己写着
+"绝不输出成符合"。``diagnostics``（零生效规则 → exit 1）与
+``bench``（门槛缺失 → exit 2）本来就是非 0，三处口径至此统一。
 
 **惰性导入纪律**：``try`` 必须包住**从 import 到调用完成**的整条路径，
 不是只包 import 那一行——分层越严（重件只许在函数体内 import），
@@ -107,7 +113,11 @@ def cmd_check(args: argparse.Namespace) -> int:
         return EXIT_USAGE
 
     _print_result(result, verbose=args.verbose)
-    return EXIT_NOT_MET if result.overall() == OVERALL_NONCOMPLIANT else EXIT_OK
+    # 未评估（零生效规则 / 全维度未参与聚合）**不是通过**：它意味着
+    # "什么都没查"。退出码 0 会让脚本把它读成"检查过、没问题"（DEC3 = B）。
+    if result.overall() in (OVERALL_NONCOMPLIANT, OVERALL_NOT_ASSESSED):
+        return EXIT_NOT_MET
+    return EXIT_OK
 
 
 def cmd_scan(args: argparse.Namespace) -> int:

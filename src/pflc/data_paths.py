@@ -8,8 +8,14 @@
          PyInstaller 6.x  → ``<_MEIPASS>/data``
          PyInstaller 5.x  → ``<exe目录>/data``（平铺布局，无 _internal/）
          PyInstaller 6.x  → ``<exe目录>/_internal/data``
-    4. 源码态：从本文件向上回溯到仓库根，取 ``<root>/data``
-    5. 兜底：CWD 上溯
+    4. **包内数据**：``<pflc 包目录>/data``（非 editable 安装时唯一可用的分支）
+    5. 源码态仓库根：``<root>/data``（仅 ``knowledge/`` 还留在这里）
+    6. 兜底：CWD 上溯
+
+**为什么第 4 条必须排在 ``repo_root()`` 之前**：``repo_root()`` 是"向上找
+含 ``pyproject.toml`` 的目录"，在 site-packages 下会一路找到 ``<venv>``，
+于是 ``data_dir()`` 落到 ``<venv>/data``（不存在）——这就是"``pip install``
+装完能跑但读不到数据"的机制。包内分支让随包数据不依赖任何目录布局假设。
 
 冻结态自检必须断言数据目录落在 **exe 目录内**——打包最常见的失效模式是
 "数据没随包走、exe 回头读了开发机的仓库"，本地看着能跑，换台机器就废。
@@ -40,6 +46,19 @@ def exe_dir() -> Optional[Path]:
 def _meipass() -> Optional[Path]:
     base = getattr(sys, "_MEIPASS", None)
     return Path(base) if base else None
+
+
+def package_data_dir() -> Path:
+    """包内随包数据目录（``<pflc 包目录>/data``）。
+
+    这是**源码态与安装态**的候选：editable 安装命中仓库里的
+    ``src/pflc/data``，非 editable 安装命中 ``site-packages/pflc/data``。
+
+    冻结态不走这里——冻结分支在 ``data_dir()`` 里排在更前，且 PyInstaller
+    会把数据平铺到 ``<_MEIPASS>/data``（``__file__`` 指向的包目录并不含
+    数据副本）。故本函数只保证"安装态能定位"，不承担冻结态语义。
+    """
+    return Path(__file__).resolve().parent / "data"
 
 
 def repo_root() -> Path:
@@ -77,6 +96,12 @@ def data_dir(explicit: Optional[Path] = None) -> Path:
             candidate = ed / "_internal" / "data"
             if candidate.is_dir():
                 return candidate
+
+    # 包内数据（**必须排在 repo_root() 之前**：site-packages 下 repo_root()
+    # 会落到 <venv>，那就是"装完读不到数据"的成因）
+    candidate = package_data_dir()
+    if candidate.is_dir():
+        return candidate
 
     candidate = repo_root() / "data"
     if candidate.is_dir():

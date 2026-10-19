@@ -28,7 +28,8 @@ SRC = ROOT / "src"
 TOOLS = ROOT / "tools"
 CLAUSES = ROOT / "data" / "knowledge" / "clauses"
 RAW = ROOT / "data" / "knowledge" / "raw"
-RULES = ROOT / "data" / "rules"
+#: 规则包随包（DEC1 = A），与条文块/原文快照不再同树
+RULES = ROOT / "src" / "pflc" / "data" / "rules"
 
 
 def _load_transcriber():

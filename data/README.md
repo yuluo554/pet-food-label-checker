@@ -151,17 +151,25 @@ M4 末态：label **3/8** · nutrition **4/32** · claim **3/5**。
 
 ### 6.1 目录与文件
 
+**数据分两棵树**（DEC1 = A「数据进包」）：随包数据住在 `src/pflc/data/`，
+核对素材仍留在仓库根 `data/`。这不是洁癖——数据留在仓库根时
+`pip install <whl>` 装出来的包**一个数据文件都没有**，运行期
+`data_dir()` 只能落到 `<venv>/data`（不存在）：能跑、但读不到规则。
+
 ```
-data/
-├── knowledge/
-│   ├── raw/                  # 原文快照（.gitattributes 标 -text 防 EOL 改写）
-│   │   ├── moa-20-2018-annex3/   # 标签规定：FAO 扫描件 + feed-china 转载 + pdftotext
-│   │   ├── gb-t-31216-2014/      # 犬粮：页图 + 数值表 OCR + 预览页 HTML
-│   │   └── gb-t-31217-2014/      # 猫粮：同上
-│   ├── transcription/spec.json   # 转录规格（数据不是代码：哪条规则取哪处原文）
-│   └── clauses/                  # 条文块 + 来源登记（脚本产出，禁手抄）
-│       ├── sources.json
-│       └── {label,nutrition,claim}.json
+data/                          # 仓库根：核对素材，**不随包**
+├── README.md
+└── knowledge/
+    ├── raw/                  # 原文快照（.gitattributes 标 -text 防 EOL 改写）
+    │   ├── moa-20-2018-annex3/   # 标签规定：FAO 扫描件 + feed-china 转载 + pdftotext
+    │   ├── gb-t-31216-2014/      # 犬粮：页图 + 数值表 OCR + 预览页 HTML
+    │   └── gb-t-31217-2014/      # 猫粮：同上
+    ├── transcription/spec.json   # 转录规格（数据不是代码：哪条规则取哪处原文）
+    └── clauses/                  # 条文块 + 来源登记（脚本产出，禁手抄）
+        ├── sources.json
+        └── {label,nutrition,claim}.json
+
+src/pflc/data/                 # 包内：随包数据（`pip install` 后可用）
 ├── rules/                    # 版本化规则包（生成器产出，禁手改）
 │   ├── ruleset-{label,nutrition,claim}.json
 │   └── manifest.json
@@ -169,6 +177,12 @@ data/
 └── benchmark/                # 冻结真值库（M4 新增；生成器产出，位级一致守门）
     └── cases.json            # 16 用例 = 四类 × 4，含植入真值与品牌白名单
 ```
+
+> **随包数据的位置由 `pyproject.toml` 的 `[tool.setuptools.package-data]` 声明**
+> （`pflc = ["data/*", "data/*/*"]`）。缺这一段，wheel 里数据条目为 0——
+> 而 CI 全部 job 都用 `pip install -e .`，editable 安装下 `repo_root()` 命中仓库根，
+> 所以本地/CI 全绿也发现不了。门禁见 `tests/test_packaging_install.py` 与 CI 的
+> `install-smoke` job。
 
 > **`benchmark/` 是 M4 新增的冻结产物**：基准的期望来源就是它（K29）。
 > 由 `tools/gen_cases.py --force` 产出、`--check` 位级守门（`FROZEN_CASES_OK`）；CI 跑该步。
@@ -188,7 +202,7 @@ data/
 
 - 规则包是**冻结产物，禁手改**：改需求走 `tools/transcribe_clauses.py --force` → `tools/gen_rulesets.py --force` 整目录重生成；
 - **位级一致守门**：`transcribe_clauses.py --check`（含**原文逐字包含断言**）与 `gen_rulesets.py --check` 输出 `TRANSCRIBE_OK` / `FROZEN_RULESET_OK`；
-- **M4 新增冻结产物**：`data/benchmark/cases.json`（真值库）由 `tools/gen_cases.py --force` 产出、`--check` 输出 `FROZEN_CASES_OK`；
+- **M4 新增冻结产物**：`src/pflc/data/benchmark/cases.json`（真值库）由 `tools/gen_cases.py --force` 产出、`--check` 输出 `FROZEN_CASES_OK`；
   **载入即校验品牌白名单**（`load_cases()`，K18 的第二个实例——白名单原先只在生成侧生效）；
 - **零政策字面量门禁（M1 勘误）**：禁用 token 从规则包**运行时实算**，扫描引擎/基准/CLI/GUI 源码含 docstring 与注释。**M0 的"绝对值 < 100 豁免"口径在真实数据下使门禁完全空转**（全部百分比限值都 < 100 → token 集为空 = 假门）；M1 改为**"整数形态且 < 20 才豁免、非整数一律不豁免"**，真实规则包下 token 集非空（11 个），并有"非空转"守门测试锁死。
 
@@ -218,9 +232,9 @@ GB/T 31216/31217 的理化指标表头写明 **"指标（以干物质计）/%"**
 | 原文快照 | ✅ 已入仓（标签规定 3 件 + 两标准各 9 件），sha256 台账登记 |
 | 条文块 | ✅ `clauses/{label,nutrition,claim}.json` + `sources.json`（脚本产出，`--check` 位级一致） |
 | 转录器 | ✅ `tools/transcribe_clauses.py`（**原文逐字包含断言**，禁手抄） |
-| 夹具 | ✅ 4 份合成标签（`data/samples/`，按 as-fed 口径重写，生成器位级一致守门） |
+| 夹具 | ✅ 4 份合成标签（`src/pflc/data/samples/`，按 as-fed 口径重写，生成器位级一致守门） |
 | 基准四套件 | ✅ **全部达标**（detection / overall / boundary / traceability） |
-| 基准真值库 | ⬜ 待 M4（生成器已就绪，`data/benchmark/cases.json` 未落盘） |
+| 基准真值库 | ⬜ 待 M4（生成器已就绪，`src/pflc/data/benchmark/cases.json` 未落盘） |
 
 **M1 实测勘误（M0 骨架对规则的猜测 → M1 实况）**：
 
@@ -248,7 +262,7 @@ GB/T 31216/31217 的理化指标表头写明 **"指标（以干物质计）/%"**
 | 分派表结构性守门 | ✅ `_JUDGES` 与 `KINDS` 一一对应 + 实现互不相同 + 夹具驱动全部 kind（**M3 新增**，K28） |
 | 基准四套件 | ✅ **全部达标**（detection 1.00 / overall 1.00 / boundary 60/60 / traceability 43/43） |
 | 测试 | ✅ **231 项**（M2 末态 229 → +2），3.8 与 3.12 双解释器全绿 |
-| 基准真值库 | ⬜ 待 M4（生成器已就绪，`data/benchmark/cases.json` **未落盘**——M4 缺口 1） |
+| 基准真值库 | ⬜ 待 M4（生成器已就绪，`src/pflc/data/benchmark/cases.json` **未落盘**——M4 缺口 1） |
 | 覆盖登记采样数 | ⬜ 待 M4（`sampled_in_truth` 仍为 `null`、`sample_list` 仍为 `[]`——M4 缺口 2） |
 
 **M3 实测勘误 0 处**：判定层语义在 M0/M2 已定型，本棒未发现新的口径错误；工作量为
@@ -264,7 +278,7 @@ GB/T 31216/31217 的理化指标表头写明 **"指标（以干物质计）/%"**
 | 项 | 状态 |
 |---|---|
 | 规则包文件 | ✅ 三份 + manifest，**45 条规则**（43 `verified` / 2 `pending`）——**M4 未改规则数值**，仅回填 manifest 的 `coverage` |
-| **冻结真值库** | ✅ **新增入仓** `data/benchmark/cases.json`（16 用例 = 合规/缺项/越限/宣称无支撑 各 4）；sha256 `f2019de7c34ec0748add306449edf9c560938e806f1c3e250f59b4730ef96811` |
+| **冻结真值库** | ✅ **新增入仓** `src/pflc/data/benchmark/cases.json`（16 用例 = 合规/缺项/越限/宣称无支撑 各 4）；sha256 `f2019de7c34ec0748add306449edf9c560938e806f1c3e250f59b4730ef96811` |
 | 真值库生成器 | ✅ `tools/gen_cases.py`（`--force` / `--check` → `FROZEN_CASES_OK`），形态与 `gen_samples.py` 一致 |
 | **基准的期望来源** | ✅ **读入库件**（`truth_source=frozen` 进 metrics）；入库件与生成器不符 → `BenchConfigError`（exit 2），**不静默重算**（K29） |
 | **载入侧白名单** | ✅ `load_cases()` 载入即断言品牌白名单（K18 的第二个实例；原先只在生成侧生效） |
@@ -280,7 +294,7 @@ GB/T 31216/31217 的理化指标表头写明 **"指标（以干物质计）/%"**
 （顺序：规则包 → 真值库 → 回填 coverage → 重冻结 manifest；位级一致未破）。
 
 **M4 未改的数据**：规则包数值、条文块、原文快照、输入夹具**全部未动**（四条冻结链各自的 `--check` 仍位级一致）。
-新增的只有 `data/benchmark/` 与 manifest 的 `coverage` 块。
+新增的只有 `src/pflc/data/benchmark/` 与 manifest 的 `coverage` 块。
 
 ---
 
@@ -300,7 +314,7 @@ GB/T 31216/31217 的理化指标表头写明 **"指标（以干物质计）/%"**
 
 | 目录 | 决定 | 理由 |
 |---|---|---|
-| `data/samples` | ✅ **入包**（进 `DATA_WHITELIST`） | README「可直接复制的示例输入」逐条引用这五个路径。不进包 → 发行版"下载即用"条条跑不通，而本地源码态一直绿（与 K29 同族） |
+| `samples`（现 `src/pflc/data/samples`） | ✅ **入包**（进 `DATA_WHITELIST`） | README「可直接复制的示例输入」逐条引用这五个路径。不进包 → 发行版"下载即用"条条跑不通，而本地源码态一直绿（与 K29 同族） |
 | `data/knowledge` | ✅ **有意不入包**（登记进 `KNOWN_UNSHIPPED`） | 版权敏感的原文快照，是**核对用素材而非运行时依赖**（`knowledge_raw_dir()` 只在离线核对通路被调用） |
 
 **豁免必须接线，不能只是声明**：`KNOWN_UNSHIPPED` 与 `FORBIDDEN_TOP_LEVEL` 的口径一致性

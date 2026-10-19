@@ -33,18 +33,18 @@ from pflc.engine import check_card
 from pflc.model import VERDICT_COMPLIANT, VERDICT_NONCOMPLIANT
 from pflc.parse import parse_label
 from pflc.rules import RulePackError, load_pack
-from tests.conftest import write_ruleset
+from tests.conftest import PACKAGE_DATA, write_ruleset
 
 ROOT = Path(__file__).resolve().parent.parent
 TOOLS = ROOT / "tools"
 
-#: 真值库入库位（数据布局：data/rules 与 data/benchmark 同级）
-SHIPPED_CASES = ROOT / "data" / "benchmark" / "cases.json"
+#: 真值库入库位（数据布局：包内 data/rules 与 data/benchmark 同级，DEC1 = A）
+SHIPPED_CASES = PACKAGE_DATA / "benchmark" / "cases.json"
 
 
 def load_pack_file(dimension: str):
     """加载**仓库里**的规则包（非夹具），供覆盖登记对账用。"""
-    return load_pack(dimension, ROOT / "data" / "rules")
+    return load_pack(dimension, PACKAGE_DATA / "rules")
 
 
 # --------------------------------------------------------------------------
@@ -477,7 +477,7 @@ def test_coverage_sampled_count_comes_from_truth_library():
     computed = coverage_from_cases(cases, packs)
 
     manifest = json.loads(
-        (ROOT / "data" / "rules" / "manifest.json").read_text(encoding="utf-8"))
+        (PACKAGE_DATA / "rules" / "manifest.json").read_text(encoding="utf-8"))
     for dim, block in computed.items():
         shipped = manifest["coverage"][dim]
         assert shipped["sampled_in_truth"] == block["sampled_in_truth"] == len(

@@ -6,11 +6,12 @@
 
 [![ci](https://github.com/yuluo554/pet-food-label-checker/actions/workflows/ci.yml/badge.svg)](https://github.com/yuluo554/pet-food-label-checker/actions/workflows/ci.yml)
 
-> **状态**：✅ **M0–M6 已完成并发布**——判定引擎三模块（标示项 / 营养限值 / 宣称核查）齐备，规则包 **45 条**（`label` 8 / `nutrition` 32 / `claim` 5，其中 **43 条已挂原文核对、2 条 `pending`**）。基准四套件**全部达标**，且期望来源可核证：真值库 `data/benchmark/cases.json`（16 用例）入仓、基准真的读它、`gen_cases.py --check` 位级守门。桌面交付为 **onedir 双 exe**（GUI 111 MB / CLI 17 MB，两树均过冻结态验收）。未挂原文核对的规则不进入判定路径，报告会显式列出。
+> **状态**：✅ **M0–M6 已完成并发布**——判定引擎三模块（标示项 / 营养限值 / 宣称核查）齐备，规则包 **45 条**（`label` 8 / `nutrition` 32 / `claim` 5，其中 **43 条已挂原文核对、2 条 `pending`**）。基准四套件**全部达标**，且期望来源可核证：真值库 `src/pflc/data/benchmark/cases.json`（16 用例）入仓、基准真的读它、`gen_cases.py --check` 位级守门。桌面交付为 **onedir 双 exe**（GUI 111 MB / CLI 17 MB，两树均过冻结态验收）。未挂原文核对的规则不进入判定路径，报告会显式列出。
 >
-> **验证**：Python 3.8 与 3.12 双解释器 **297 项测试** + **九道 OK 标记门**（`TRANSCRIBE_OK` / `FROZEN_RULESET_OK` / `FROZEN_CASES_OK` / `FROZEN_SAMPLES_OK` / `DESSENSITIZE_AUDIT_OK` / `SMOKE_CLI_OK` / `RELEASE_PACK_OK` / `VERIFY_FROZEN_OK` / `DEMO_ASSETS_OK`）+ 基准四套件达标；**CI 四矩阵 + `package` job 全绿**（[run 记录](https://github.com/yuluo554/pet-food-label-checker/actions)）。
+> **验证**：**303 项测试**（口径见下）+ **九道 OK 标记门**（`TRANSCRIBE_OK` / `FROZEN_RULESET_OK` / `FROZEN_CASES_OK` / `FROZEN_SAMPLES_OK` / `DESSENSITIZE_AUDIT_OK` / `SMOKE_CLI_OK` / `RELEASE_PACK_OK` / `VERIFY_FROZEN_OK` / `DEMO_ASSETS_OK`）+ 基准四套件达标；**CI 四个 job（`test` / `test-gui` / `install-smoke` 各双平台 + `package`）**（[run 记录](https://github.com/yuluo554/pet-food-label-checker/actions)）。
+> 测试数口径：**装齐 `[dev,gui]` 且 `QT_QPA_PLATFORM=offscreen` 时 303 passed**；只装 `[dev]` 时 **294 passed + 1 skipped**（`tests/test_gui.py` 模块级 `importorskip`，声明式跳过，不是失败）。解释器 floor 为 **Python >= 3.12**。
 >
-> **发布**：[Release `v0.1.0`](https://github.com/yuluo554/pet-food-label-checker/releases/tag/v0.1.0)（两个 zip 附件，sha256 见 [`docs/DIST-sha256-M6.txt`](docs/DIST-sha256-M6.txt)）。发布记录与复跑手册见 [`plan/HANDOFF-FINAL.md`](plan/HANDOFF-FINAL.md)。
+> **发布**：[Release `v0.2.0`](https://github.com/yuluo554/pet-food-label-checker/releases/tag/v0.2.0)（两个 exe zip + wheel/sdist 附件，sha256 见 [`docs/DIST-sha256-v0.2.0.txt`](docs/DIST-sha256-v0.2.0.txt)）。发布记录与复跑手册见 [`plan/HANDOFF-FINAL.md`](plan/HANDOFF-FINAL.md)。上一版 `v0.1.0` 仍在，Release 页面可查。
 
 ---
 
@@ -20,10 +21,11 @@
 
 | 下载 | 大小 | 内含 | 适合 |
 |---|---|---|---|
-| [`pflc-gui-windows-x64-0.1.0.zip`](https://github.com/yuluo554/pet-food-label-checker/releases/download/v0.1.0/pflc-gui-windows-x64-0.1.0.zip) | 约 111 MB | 桌面版 `pflc.exe`（内嵌 PySide6） | 想用图形界面填表核验 |
-| [`pflc-cli-windows-x64-0.1.0.zip`](https://github.com/yuluo554/pet-food-label-checker/releases/download/v0.1.0/pflc-cli-windows-x64-0.1.0.zip) | 约 17 MB | 命令行版 `pflc-cli.exe`（**特意不含 Qt**） | 只要命令行 / 脚本化核验 |
+| [`pflc-gui-windows-x64-0.2.0.zip`](https://github.com/yuluo554/pet-food-label-checker/releases/download/v0.2.0/pflc-gui-windows-x64-0.2.0.zip) | 约 111 MB | 桌面版 `pflc.exe`（内嵌 PySide6） | 想用图形界面填表核验 |
+| [`pflc-cli-windows-x64-0.2.0.zip`](https://github.com/yuluo554/pet-food-label-checker/releases/download/v0.2.0/pflc-cli-windows-x64-0.2.0.zip) | 约 17 MB | 命令行版 `pflc-cli.exe`（**特意不含 Qt**） | 只要命令行 / 脚本化核验 |
+| `pet_food_label_checker-0.2.0-py3-none-any.whl` | 约 95 KB | Python wheel（**数据随包**，`pip install` 后可直接用） | 已有 Python ≥3.12，想 `pip install` |
 
-两个 `.zip` 的 sha256 见 [`docs/DIST-sha256-M6.txt`](docs/DIST-sha256-M6.txt)（可与 Release 页面对照核验）。
+两个 `.zip` 与 wheel 的 sha256 见 [`docs/DIST-sha256-v0.2.0.txt`](docs/DIST-sha256-v0.2.0.txt)（可与 Release 页面对照核验）。
 
 **用法**：解压到任意目录（**别放进本仓库树内**），双击 `pflc.exe` 即开；
 命令行则在该目录下：
@@ -75,10 +77,10 @@ flowchart TD
     end
 
     subgraph 数据层 冻结产物 禁手改
-        RP[data/rules/<br/>ruleset-label/nutrition/claim.json]
-        KB[data/knowledge/<br/>原文快照 + 条文块]
-        SAMP[data/samples/<br/>README 可跑夹具]
-        BENCH[data/benchmark/<br/>合成标签 + 植入真值]
+        RP[src/pflc/data/rules/<br/>ruleset-label/nutrition/claim.json]
+        KB[data/knowledge/<br/>原文快照 + 条文块 · 不随包]
+        SAMP[src/pflc/data/samples/<br/>README 可跑夹具]
+        BENCH[src/pflc/data/benchmark/<br/>合成标签 + 植入真值]
     end
 
     CLI --> PIPE
@@ -97,6 +99,7 @@ flowchart TD
 ## 快速开始
 
 ```bash
+# 0) 需要 Python >= 3.12
 # 1) 建虚拟环境（Windows 上用 py 启动器；venv 内一律用 python -m 调 pip，
 #    因为 py 启动器会无视已激活的 venv）
 py -m venv .venv
@@ -104,17 +107,22 @@ py -m venv .venv
 python -m pip install --upgrade pip
 python -m pip install -e ".[dev]"
 
+# 也可以直接装 wheel（非 editable 形态；随包数据在 wheel 里，装完即用）
+python -m pip wheel . --no-deps -w dist-wheel
+python -m pip install dist-wheel/*.whl
+pflc diagnostics                 # 期望 exit 0 且 label 8 / nutrition 32 / claim 5
+
 # 2) 看规则与数据状态
 python -m pflc.cli diagnostics
 
 # 3) 核验一份标签
-python -m pflc.cli check data/samples/label-demo-ok.txt -v
+python -m pflc.cli check src/pflc/data/samples/label-demo-ok.txt -v
 
 # 4) 跑内置基准
 python -m pflc.cli bench
 
 # 5) 导出双轨报告（Markdown 人读 + CSV 机读）
-python -m pflc.cli report data/samples/label-demo-missing.txt --out output/
+python -m pflc.cli report src/pflc/data/samples/label-demo-missing.txt --out output/
 
 # 6) 桌面应用（需额外装 GUI 依赖）
 python -m pip install -e ".[gui]"
@@ -165,11 +173,17 @@ python tools/make_release.py --dist dist --out release --ledger docs/DIST-sha256
 | 码 | 含义 |
 |---|---|
 | `0` | 无不符合 / 达标 |
-| `1` | 检出不符合 / 基准未达标 / 有未生效规则被门控拦下 |
+| `1` | 检出不符合 / 基准未达标 / 有未生效规则被门控拦下 / **整体结论为"未评估"** |
 | `2` | 输入、坐标或用例名错误 |
 | `3` | 缺可选依赖（GUI） |
 
 > 退出码非 0 **不等于**跑挂。判据是"符合上表声明过的契约"。
+
+> **为什么"未评估"是 `1` 而不是 `0`**：整体结论为"未评估"意味着**零生效规则**
+> （规则包没装到、或全部条目都还没挂原文核对），也就是"什么都没查"。
+> 若它返回 `0`，"没检查过"与"检查过、没问题"在脚本眼里**无法区分**——
+> 而本项目的纪律是"绝不把未评估输出成符合"。`diagnostics`（零生效规则 → `1`）
+> 与 `bench`（门槛缺失 → `2`）本来就是非 0，三处口径至此统一。
 
 ### 可直接复制的示例输入
 
@@ -177,11 +191,11 @@ python tools/make_release.py --dist dist --out release --ledger docs/DIST-sha256
 
 | 文件 | 植入情形 |
 |---|---|
-| `data/samples/label-demo-ok.txt` | 全部强制项齐备、保证值达标 |
-| `data/samples/label-demo-missing.txt` | 缺净含量 / 生产者 / 添加剂 |
-| `data/samples/label-demo-overlimit.txt` | 保证值低于限值 |
-| `data/samples/label-demo-claim.txt` | 宣称"天然、无谷"但缺原料组成支撑 |
-| `data/samples/label-demo-edge.txt` | 解析层边界：产品类型词"全价"与"幼年"同现 / 净含量未知单位 `oz` / 非法日期 `2026-13-45` |
+| `src/pflc/data/samples/label-demo-ok.txt` | 全部强制项齐备、保证值达标 |
+| `src/pflc/data/samples/label-demo-missing.txt` | 缺净含量 / 生产者 / 添加剂 |
+| `src/pflc/data/samples/label-demo-overlimit.txt` | 保证值低于限值 |
+| `src/pflc/data/samples/label-demo-claim.txt` | 宣称"天然、无谷"但缺原料组成支撑 |
+| `src/pflc/data/samples/label-demo-edge.txt` | 解析层边界：产品类型词"全价"与"幼年"同现 / 净含量未知单位 `oz` / 非法日期 `2026-13-45` |
 
 ---
 
@@ -287,7 +301,7 @@ GB/T 31216/31217 的理化指标表头写明 **"指标（以干物质计）/%"**
 | `traceability` | `effective_rules=43`、`resolvable=43`、`rate=1.0` |
 
 > **真值来源可核证**：`detection` 与 `overall` 的 metrics 里带 `truth_source=frozen`
-> ——基准读的是入库冻结真值库 `data/benchmark/cases.json`，不是每次现场重算。
+> ——基准读的是入库冻结真值库 `src/pflc/data/benchmark/cases.json`，不是每次现场重算。
 > 该入库件配 `python tools/gen_cases.py --check` 常驻守门（入库件与生成器输出位级一致），
 > CI 亦跑此步。基线偏离即报配置错误（exit 2），**不静默重算**。
 
@@ -317,7 +331,8 @@ GB/T 31216/31217 的理化指标表头写明 **"指标（以干物质计）/%"**
 
 ```
 plan/          计划文档（00 总览 / 01 题面 / 02 需求 / 03 架构 / 04 详设 / 05 数据 / 06 里程碑 / 07 对标与决策）
-data/          数据层（knowledge 原文快照 / rules 冻结规则包 / samples 夹具 / benchmark 真值库）
+data/          核对素材（knowledge 原文快照 + 条文块；**不随包**）
+src/pflc/data/ 随包数据（rules 冻结规则包 / samples 夹具 / benchmark 真值库）
 src/pflc/      主包（model / parse / rules / engine / report / pipeline / cli / gui / benchmark）
 tools/         生成器与守门脚本（gen_rulesets / gen_cases / gen_samples / audit_desensitize / verify_frozen / smoke_cli / check_demo_reproducible / entry_cli / entry_gui / pflc.spec）
 tests/         测试（含零字面量门禁 / AST 分层门禁 / EOL 门禁 / 探活变异验证）
@@ -344,11 +359,9 @@ docs/          技术报告与演示物料
 
 | 现象 | 原因与处置 |
 |---|---|
-| 3.8 上 `pip install -e .` 失败 | py3.8 自带 pip 20.2.3 无法可编辑安装 pyproject-only 项目 → 先 `python -m pip install --upgrade pip`（README 已含该行） |
 | `py` 启动器无视已激活的 venv | 本机已知行为 → README 的 venv 段落一律用 `python -m pip ...` |
 | 中文在控制台显示乱码 | 入口已按 `stream.encoding` 探针 reconfigure；若仍异常，用 `py -X utf8` 跑 |
-| GUI 依赖装不上（3.8） | PySide6 6.7+ 元数据要求 Python ≥3.9；3.8 上实测可解析最高版为 6.6.3.1（extras 已写 `>=6.5,<6.7`） |
-| 打包 GUI 崩在 `Instruction object is not iterable` | PyInstaller 5.x 无法扫 PySide6 字节码 → 打 GUI 必须 PyInstaller ≥6（`build` extra 已按 Python 版本分档） |
+| 打包 GUI 崩在 `Instruction object is not iterable` | PyInstaller 5.x 无法扫 PySide6 字节码 → 打 GUI 必须 PyInstaller ≥6（`build` extra 已统一为 `>=6.0`） |
 | `tools/pflc.spec` 未入仓 | `.gitignore` 的 `*.spec` 通配会吞掉它 → 已加 `!tools/*.spec` 例外 |
 
 ---
@@ -368,7 +381,7 @@ python tools/check_demo_reproducible.py # 演示物料两次生成 sha256 一致
 python tools/make_release.py --dist dist --out release --check  # 发布 zip 确定性 + 回读保真 + 产物脱敏
 ```
 
-CI 四矩阵：`windows×{3.8,3.12} + ubuntu×{3.12}`，外加一个 `package` job
+CI 矩阵：`windows×{3.12} + ubuntu×{3.12}`，外加 `install-smoke`（非 editable 安装验收）与 `package` job
 （真构建 onedir 双 exe → 两树冻结态验收 → 演示物料可复现性 → 发布 zip 打包与三条判据）。
 
 ---

@@ -51,6 +51,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
 from pflc.rules import RULESET_FILES, load_pack  # noqa: E402
+from pflc.packaging import package_data_root  # noqa: E402
 from pflc.benchmark.cases import (  # noqa: E402
     CASES_FILENAME,
     coverage_from_cases,
@@ -58,9 +59,11 @@ from pflc.benchmark.cases import (  # noqa: E402
     load_cases,
 )
 
+#: 条文块留在仓库根 ``data/knowledge/``（不随包）
 CLAUSES_DIR = ROOT / "data" / "knowledge" / "clauses"
-RULES_DIR = ROOT / "data" / "rules"
-BENCHMARK_DIR = ROOT / "data" / "benchmark"
+#: 冻结产物进包：``src/pflc/data/``（DEC1 = A，数据进包）
+RULES_DIR = package_data_root(ROOT) / "rules"
+BENCHMARK_DIR = package_data_root(ROOT) / "benchmark"
 CASES_PATH = BENCHMARK_DIR / CASES_FILENAME
 
 #: 规则包版本（人工维护；进 manifest 与每份规则包）
@@ -85,7 +88,7 @@ def _dump(path: Path, payload: Any) -> None:
     """确定性落盘：固定键序、固定缩进、LF 行尾、无时间戳。"""
     path.parent.mkdir(parents=True, exist_ok=True)
     text = json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True)
-    # newline="\n" 显式指定——Path.write_text(newline=) 是 3.10+ 参数，3.8 不可用
+    # newline="\n" 显式指定——与仓库其余落盘通路口径统一（见 tests/conftest.py）
     with open(path, "w", encoding="utf-8", newline="\n") as fh:
         fh.write(text + "\n")
 

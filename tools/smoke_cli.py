@@ -39,26 +39,32 @@ OK_MARKER = "SMOKE_CLI_OK"
 #: **M1 末态**：规则包已录入并逐条核对（43 条 verified / 2 条 pending）。
 #: 故这里断言的是"M1 真实数据下的契约"，M0 骨架态的期望（空规则 → diagnostics 1、
 #: bench 1）已随数据录入而失效——**期望随数据一起演进，不写死成恒真的空断言**。
+#:
+#: **DEC3 = B（2026-10-20）**：整体结论"未评估"改判 exit 1（原先落 0）。
+#: 本文件里各条 ``check`` 的期望值**不变**——它们都在有生效规则的环境下跑，
+#: 结论是符合/不符合，不是未评估。未评估那条口径由
+#: ``tests/test_cli.py::test_check_not_assessed_exits_one`` 与
+#: ``tests/test_packaging_install.py`` 锁死。
 CASES: List[Tuple[str, List[str], int, str]] = [
     ("diagnostics（已录入规则 → exit 0）",
      ["diagnostics"], 0, "plan/06 M1：规则生效后 diagnostics 正常返回"),
     ("check 合规样例（无不符合 → exit 0）",
-     ["check", "data/samples/label-demo-ok.txt"], 0, "README：0 = 无不符合"),
+     ["check", "src/pflc/data/samples/label-demo-ok.txt"], 0, "README：0 = 无不符合"),
     ("check 缺项样例（检出不符合 → exit 1）",
-     ["check", "data/samples/label-demo-missing.txt"], 1, "README：1 = 检出不符合"),
+     ["check", "src/pflc/data/samples/label-demo-missing.txt"], 1, "README：1 = 检出不符合"),
     ("check 越限样例（检出不符合 → exit 1）",
-     ["check", "data/samples/label-demo-overlimit.txt"], 1, "README：1 = 检出不符合"),
+     ["check", "src/pflc/data/samples/label-demo-overlimit.txt"], 1, "README：1 = 检出不符合"),
     ("check 宣称无支撑样例（检出不符合 → exit 1）",
-     ["check", "data/samples/label-demo-claim.txt"], 1, "README：1 = 检出不符合"),
+     ["check", "src/pflc/data/samples/label-demo-claim.txt"], 1, "README：1 = 检出不符合"),
     ("check 解析边界样例（非法日期/未知单位 → 检出不符合 → exit 1）",
-     ["check", "data/samples/label-demo-edge.txt"], 1,
+     ["check", "src/pflc/data/samples/label-demo-edge.txt"], 1,
      "plan/06 M2：解析降级不得读成合规"),
     ("bench（四套件达标 → exit 0）",
      ["bench"], 0, "plan/03 D12：门槛达标才返回 0"),
     ("selftest（源码态不判 FAIL → exit 0）",
      ["selftest", "--out", ".tmp/smoke-selftest.json"], 0, "plan/03 D21"),
     ("check 不存在的文件（用法错误 → exit 2）",
-     ["check", "data/samples/does-not-exist.txt"], 2, "README：2 = 输入错误"),
+     ["check", "src/pflc/data/samples/does-not-exist.txt"], 2, "README：2 = 输入错误"),
     ("bench --only 未知名（用法错误 → exit 2）",
      ["bench", "--only", "nope"], 2, "plan/03 D14：未知名必须 exit 2"),
 ]

@@ -22,12 +22,20 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
+#: **随包数据**的仓库内位置（DEC1 = A：数据进包）。
+#:
+#: ``rules`` / ``benchmark`` / ``samples`` 住在这里；``knowledge`` 仍在
+#: 仓库根 ``data/knowledge``（不随包）。测试要读真实数据时一律走这两个常量，
+#: 不再各自拼 ``ROOT / "data" / ...``——否则迁目录时必漏一处。
+PACKAGE_DATA = SRC / "pflc" / "data"
+REPO_DATA = ROOT / "data"
+
 
 def write_text_lf(path: Path, text: str) -> Path:
     """以 LF 行尾写文本。
 
-    ``Path.write_text(newline=)`` 是 **3.10+** 参数，3.8 上直接 TypeError——
-    本项目底线 3.8，故一律走 ``open(..., newline="\\n")``。
+    ``Path.write_text(newline=)`` 是 **3.10+** 参数；本仓一律走
+    ``open(..., newline="\\n")``，口径统一、也不依赖解释器版本。
     """
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)

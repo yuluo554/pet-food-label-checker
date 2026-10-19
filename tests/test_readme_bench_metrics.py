@@ -26,7 +26,7 @@ from pflc.benchmark import run
 
 ROOT = Path(__file__).resolve().parent.parent
 README = ROOT / "README.md"
-RULES_DIR = ROOT / "data" / "rules"
+RULES_DIR = ROOT / "src" / "pflc" / "data" / "rules"
 
 #: 每个套件必须写进 README 的指标（**只列清单，不存数值**——数值取自实跑）。
 #: 新增指标要同时改这里与 README 表格，否则门不覆盖它。

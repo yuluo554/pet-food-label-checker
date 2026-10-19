@@ -329,6 +329,29 @@ def test_release_packages_cover_both_dist_trees():
     assert dirs == ["pflc", "pflc-cli-dist"], dirs
 
 
+def _current_ledger(release):
+    """当前版本对应的发布留档路径；没有则返回 ``None``。
+
+    **为什么按版本找而不是写死文件名**：留档名带里程碑后缀
+    （``DIST-sha256-M5.txt`` / ``-M6.txt``），版本 bump 之后旧名字仍在仓里，
+    写死它会让门禁去对"上一版"的哈希 —— 那是**看起来在验、其实验错对象**。
+    优先取 ``DIST-sha256-v<版本>.txt``，回落扫 ``DIST-sha256-*.txt`` 里
+    头部版本号匹配的那一份。
+    """
+    docs = ROOT / "docs"
+    preferred = docs / ("DIST-sha256-v%s.txt" % release.package_version())
+    if preferred.is_file():
+        return preferred
+    for path in sorted(docs.glob("DIST-sha256-*.txt")):
+        try:
+            text = path.read_text(encoding="utf-8")
+        except OSError:                       # pragma: no cover - 读失败即跳过
+            continue
+        if ("# 版本：%s" % release.package_version()) in text:
+            return path
+    return None
+
+
 def test_shipped_release_ledger_matches_archives(tmp_path):
     """入仓留档与**真打出来的 zip** 对账（留档若与产物脱节就不可核证）。
 
@@ -350,12 +373,20 @@ def test_shipped_release_ledger_matches_archives(tmp_path):
     if not (ROOT / "dist" / "pflc-cli-dist").is_dir():
         pytest.skip("本机无 dist 产物（需先 PyInstaller 构建）")
 
-    ledger = ROOT / "docs" / "DIST-sha256-M6.txt"
-    if not ledger.is_file():
-        pytest.skip("尚未生成 M6 发布物留档")
+    ledger = _current_ledger(release)
+    if ledger is None:
+        pytest.skip("尚未生成当前版本的发布物留档")
 
     declared = release.parse_ledger(ledger)
     assert declared, "留档里没解析出记录 = 判据空转"
+
+    # 留档版本必须与包版本一致：版本 bump 后忘了重生成留档，就会拿旧版本的
+    # 哈希去对"新版本的附件名"——那时下面会报"留档缺少 xxx"，但报错信息指向
+    # 附件名而不是"留档过期"，容易查错方向。这里先把它点明。
+    header = ledger.read_text(encoding="utf-8")
+    assert ("# 版本：%s" % release.package_version()) in header, (
+        "留档版本与包版本不一致（留档 %s / 包 %s）—— 版本 bump 后要重生成留档"
+        % (ledger.name, release.package_version()))
 
     checked_same_tree = 0
     for dist_name, base in release.PACKAGES:

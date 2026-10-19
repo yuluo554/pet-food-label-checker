@@ -12,5 +12,6 @@ data/knowledge/raw/** -text
 *.gif binary
 
 # 字节冻结 fixtures：位级一致守门测试的比对对象，禁止行尾改写。
-data/benchmark/** -text
-data/rules/** -text
+# DEC1 = A 之后随包数据住在 src/pflc/data/ 下（knowledge 仍在仓库根）。
+src/pflc/data/benchmark/** -text
+src/pflc/data/rules/** -text

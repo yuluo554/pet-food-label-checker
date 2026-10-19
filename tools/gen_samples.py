@@ -31,7 +31,12 @@ for _stream_name in ("stdout", "stderr"):
                     pass
 
 ROOT = Path(__file__).resolve().parent.parent
-SAMPLES_DIR = ROOT / "data" / "samples"
+sys.path.insert(0, str(ROOT / "src"))
+
+from pflc.packaging import package_data_root  # noqa: E402
+
+#: 夹具进包（DEC1 = A）：README 的示例路径在发行版里必须可用
+SAMPLES_DIR = package_data_root(ROOT) / "samples"
 
 OK_MARKER = "FROZEN_SAMPLES_OK"
 

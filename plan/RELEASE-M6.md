@@ -305,3 +305,113 @@ tag 之后的提交只改文档（`plan/` / `docs/` / `README.md`），**`src/` 
 
 **诚实口径**：CI 类的 DoD 据实写。首跑失败已按实照录于 §五（run id + 失败面 + 根因 + 修法），
 **未抹除、未回填美化**。复跑结论见下节（在公布 Release 前于本节补记真实 run id 与结论）。
+
+---
+
+## 七、二次迭代（2026-10-20）：安装面缺陷与修复
+
+> 本节记录 M6 之后的一次**实质缺陷修复**。发布物（tag `v0.1.0` 与两个 zip 附件）
+> **未动**——本轮不重新打包、不发 Release。
+
+### 7.1 缺陷（实测）
+
+`pip wheel .` 产出的 wheel **一个数据文件都没有**（`data/` 在包外）：
+83,083 B / 23 条目 / `data entries: 0`。干净 venv 装完后：
+
+```
+data_dir()  = <venv>\data          is_dir() = False
+pflc diagnostics → "manifest：缺失" / "共 0 条"   → exit 1
+pflc check <文件> → "整体结论：未评估"            → exit 0   ← 零规则却报成功
+pflc bench        → "配置错误：…thresholds 节缺失" → exit 2
+```
+
+**为什么 CI 全绿**：三个 job 全部 `pip install -e ".[dev]"`；editable 安装下
+`repo_root()` 命中仓库根，`data/` 正常。`grep -rn "pip wheel\|pip install \."`
+在 workflow / tests / tools 里 **0 命中** —— 这个形态从来没被验过。
+
+### 7.2 修复（DEC1 = A / DEC2 = A / DEC3 = B / DEC4 = B）
+
+| # | 动作 | 文件 |
+|---|---|---|
+| 1 | `data/{rules,benchmark,samples}` → `src/pflc/data/`（`data/knowledge` 留在仓库根，仍不随包） | 目录（`git mv`） |
+| 2 | `data_dir()` 加**包内分支**，排在 `repo_root()` 之前；冻结态两条分支语义未动 | `src/pflc/data_paths.py` |
+| 3 | `build_datas()` / `data_manifest()` / `assert_no_extra_data()` 改按**包内数据根**取源，datas 目标仍是 `data/<name>`（冻结态布局不变）；`assert_no_extra_data` 改为**两棵树都扫** | `src/pflc/packaging.py` |
+| 4 | 新增 `[tool.setuptools.package-data] pflc = ["data/*", "data/*/*"]` | `pyproject.toml` |
+| 5 | 生成器与测试的路径字面量全量同步；`.gitattributes` 的 `-text` 声明随之改到 `src/pflc/data/**` | `tools/*`、`tests/*`、`.gitattributes` |
+| 6 | 新增安装面门禁：`tests/test_packaging_install.py`（5 项）+ CI `install-smoke` job（双平台） | 新增 + `ci.yml` |
+| 7 | `check` 的"未评估"改判 exit 1（与 `diagnostics` 口径统一），README 退出码表补该状态 | `src/pflc/cli.py`、`README.md`、`tests/test_cli.py` |
+| 8 | `license = "MIT"` + 删 `License ::` classifier；`build-system` 抬到 `setuptools>=77`（SPDX 字符串所需）→ 元数据 **零 warning** | `pyproject.toml` |
+| 9 | floor `>=3.8` → `>=3.12`：`gui` 去 `<6.7` 上限、`build` extra 合并单档、CI 矩阵去 3.8、README「已知环境问题」删 3 条 3.8 条目 | `pyproject.toml`、`ci.yml`、`README.md` |
+| 10 | `actions/checkout@v4→v5`、`actions/setup-python@v5→v6`（大版本已确认存在）；加 `permissions: contents: read` 与 `concurrency` | `ci.yml` |
+
+### 7.3 验收（实测）
+
+| 项 | 改前 | 改后 |
+|---|---|---|
+| wheel 数据条目 | 0（83,083 B / 23 条目） | **10**（rules 4 + benchmark 1 + samples 5） |
+| 干净安装 `data_dir()` | `<venv>\data`（不存在） | `<venv>\Lib\site-packages\pflc\data`（存在） |
+| 干净安装 `diagnostics` | exit 1 / 共 0 条 | **exit 0 / 8 · 32 · 5（共 45）** |
+| 干净安装 `bench` | exit 2（配置错误） | **exit 0 / 四套件 `[PASS]` / `truth_source = frozen`** |
+| 干净安装 `check`（合规/缺项样例） | 未评估 → exit 0 | **符合 → exit 0 / 不符合 → exit 1** |
+| 元数据 warning | 2 条 `SetuptoolsDeprecationWarning` | **0 条** |
+| 测试 | 297 passed | **303 passed**（新增 5 项安装面 + 1 项退出码） |
+
+**负控已验**：删掉 `[tool.setuptools.package-data]` 后重跑
+`tests/test_packaging_install.py` → **5 项全红**（其中 `test_wheel_carries_data_files`
+报"数据条目 0 个（期望 10）"）。
+
+> 负控首轮曾**假绿**：`pip wheel .` 复用了仓内陈旧的 `build/` 与
+> `src/*.egg-info/SOURCES.txt`，清单里仍列着数据文件，wheel 照样带 10 个条目。
+> 修法：门禁改为**从干净副本构建**（复制 `pyproject.toml` / `README.md` /
+> `LICENSE` / `src/`，排除 `__pycache__` / `*.egg-info` / `build`）。这条已写进测试 docstring。
+
+### 7.4 未做（明确不在本轮范围）
+
+- 未重新打包、未发 Release、未动 tag `v0.1.0` 与两个 zip 附件（sha256 未变）；
+- 未改判定逻辑（`engine` / `parse` / `rules` / `report` / `pipeline`）；
+- 未改冻结数据的**字节**（只迁位置），四道冻结门原样 OK；
+- 新 CI job（`install-smoke`）需推送后才跑 → **待复验**。
+---
+
+## 八、v0.2.0 发布（2026-10-20）
+
+> 版本从 `0.1.0` → **`0.2.0`**。按 semver，0.x 的 minor 承担破坏性变更——
+> 这里确实有一处：`check` 在"未评估"时由 exit 0 改为 **exit 1**（DEC3 = B）。
+> 依赖"exit 0 = 通过"的脚本会受影响，故不按 patch 发。
+
+### 8.1 发布内容
+
+| 项 | 值 |
+|---|---|
+| tag | `v0.2.0` |
+| 附件 | `pflc-gui-windows-x64-0.2.0.zip`（165 文件）<br>`pflc-cli-windows-x64-0.2.0.zip`（23 文件）<br>`pet_food_label_checker-0.2.0-py3-none-any.whl`（96,102 B）<br>`pet_food_label_checker-0.2.0.tar.gz`（163,937 B） |
+| 留档 | `docs/DIST-sha256-v0.2.0.txt`（zip 行由 `make_release.py --ledger` 生成；wheel/sdist 为附录手写追加） |
+| 上一版 | `v0.1.0` 与 `docs/DIST-sha256-M6.txt` **原样保留**，可复核 |
+
+### 8.2 重打包是真的（不是复用旧产物）
+
+这一版 `build_datas()` 的**源路径**改了（仓库根 `data/` → 包内 `src/pflc/data/`），
+所以必须真构建一次才能验证 exe 里仍有数据。实测：
+
+```
+python -m PyInstaller --clean --noconfirm tools/pflc.spec     → exit 0
+python tools/verify_frozen.py --dist dist/pflc-cli-dist --selftest  → VERIFY_FROZEN_OK
+python tools/verify_frozen.py --dist dist/pflc --selftest           → VERIFY_FROZEN_OK
+  pflc-cli 自检结论：{"data_dir_in_dist": true, "rules_present": true}
+  pflc 自检结论：{"data_dir_in_dist": true, "rules_present": true}
+  GUI 探针：页签 6 个 ['标签导入','标示项检查','限值判定','宣称核查','基准评测','关于']
+python tools/make_release.py --dist dist --out release --check       → RELEASE_PACK_OK
+```
+
+**这正是二次迭代里最值得记的一步**：源码态测试与 wheel 安装都绿，证明不了
+exe 里还带数据——`build_datas()` 改源路径后若忘了同步，exe 会打成"没有数据"的树，
+而所有源码态测试照样全绿。`verify_frozen` 的 `rules_present` 是这里唯一能抓住它的断言。
+
+### 8.3 留档机制的顺带修正
+
+`tests/test_release.py` 原先把留档路径**写死** `docs/DIST-sha256-M6.txt`。
+版本 bump 后旧名字仍在仓里 —— 写死它会让门禁去对**上一版**的哈希，
+"看起来在验、其实验错对象"。改为 `_current_ledger()`：优先取
+`DIST-sha256-v<版本>.txt`，否则扫 `DIST-sha256-*.txt` 里头部版本号匹配的那份；
+并新增断言"留档头部版本 == 包版本"，把"版本 bump 忘了重生成留档"这一点明化。
+`make_release.ledger_text()` 的表头也从写死 `（M6）` 改为按版本生成。

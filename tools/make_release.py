@@ -294,7 +294,7 @@ def ledger_text(records: List[Dict[str, object]], version: str) -> str:
     无从判断"对不上"是产物变了还是构建环境本就不同（见 ``tree_sha256``）。
     """
     lines = [
-        "# 发布物 zip sha256 留档（M6）",
+        "# 发布物 zip sha256 留档（v%s）" % version,
         "# 生成：py -X utf8 tools/make_release.py --dist dist --out release --ledger <此文件>",
         "# 版本：%s" % version,
         "#",
@@ -307,8 +307,8 @@ def ledger_text(records: List[Dict[str, object]], version: str) -> str:
         "#  会得到另一组哈希与另一个文件数（Windows runner 的 Python 环境收集到更多",
         "#  运行库，实测多 43 个文件）。故**留档哈希只对「这一份发布产物」有效**，",
         "#  不能用「在别处重建一次」来复现——复现的是**确定性口径**，不是那些字节。",
-        "#  真下载复核的做法见 plan/RELEASE-M6.md §五：对账的是**下载到的附件**与",
-        "#  本表，不是在别处重打一个。",
+        "#  真下载复核的做法见 plan/RELEASE-M6.md §五（v0.1.0）与 §七（后续版本）：",
+        "#  对账的是**下载到的附件**与本表，不是在别处重打一个。",
         "#",
         "# 格式：<zip sha256>  <附件名>  <文件数>  <树 sha256>",
         "",

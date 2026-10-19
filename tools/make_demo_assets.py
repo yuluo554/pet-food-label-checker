@@ -73,9 +73,15 @@ _REPO_MARKER = "10-15-pet-food-label-checker"
 
 
 def _redact(text: str) -> str:
-    """把本机绝对路径替换为中性占位符（生成期脱敏）。"""
+    """把本机绝对路径替换为中性占位符（生成期脱敏）。
+
+    DEC1 = A（数据进包）之后，运行期 ``data_dir()`` 指向
+    ``src/pflc/data``；仓库根 ``data/`` 只剩 ``knowledge``。
+    两者都要替换——只替换旧位置会让素材里出现 ``<仓库根>/src/pflc/data``。
+    """
     out = text
-    # 数据目录整段（含盘符与仓库名）
+    # 数据目录整段（含盘符与仓库名）：随包数据与仓库根核对素材两处
+    out = out.replace(str(ROOT / "src" / "pflc" / "data"), DATA_DIR_PLACEHOLDER)
     out = out.replace(str(ROOT / "data"), DATA_DIR_PLACEHOLDER)
     out = out.replace(str(ROOT).replace("\\", "/"), "<仓库根>")
     out = out.replace(str(ROOT), "<仓库根>")

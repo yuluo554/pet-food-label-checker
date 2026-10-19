@@ -1,8 +1,8 @@
 name: ci
 
-# 四矩阵：windows×{3.8,3.12} + ubuntu×{3.12}
-#   3.8 是项目底线（老解释器只在 windows 守）；
-#   ubuntu 守 Linux 通路（编码/路径/系统库差异）。
+# 双平台矩阵：windows×{3.12} + ubuntu×{3.12}
+#   floor 已抬到 >=3.12（3.8 于 2024-10 EOL、3.9 于 2025-10、3.10 于 2026-10），
+#   3.8 通道随之撤掉；ubuntu 守 Linux 通路（编码/路径/系统库差异）。
 on:
   push:
   pull_request:
@@ -14,6 +14,14 @@ env:
   PYTHONUTF8: "1"
   PYTHONIOENCODING: "utf-8"
 
+# 最小权限 + 同分支并发取消：本仓只需读代码，不需要写任何 GitHub 状态。
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     name: test (${{ matrix.os }} / py${{ matrix.python-version }})
@@ -23,23 +31,20 @@ jobs:
       matrix:
         include:
           - os: windows-latest
-            python-version: "3.8"
-          - os: windows-latest
             python-version: "3.12"
           - os: ubuntu-latest
             python-version: "3.12"
     steps:
       # fetch-depth: 0 —— 历史扫描类守门测试需要完整历史，
       # 浅克隆会把它静默削弱成空验（有守门测试断言每个 checkout 都设了 0）。
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
 
-      # 老解释器自带的老 pip 无法可编辑安装 pyproject-only 项目
       - name: Upgrade pip
         run: python -m pip install --upgrade pip
 
@@ -85,17 +90,15 @@ jobs:
       matrix:
         include:
           - os: windows-latest
-            python-version: "3.8"
-          - os: windows-latest
             python-version: "3.12"
           - os: ubuntu-latest
             python-version: "3.12"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -123,6 +126,97 @@ jobs:
           QT_QPA_PLATFORM: offscreen
         run: python -m pytest -q -ra
 
+  # 安装面验收：**非 editable 安装**必须"装完能用"。
+  #
+  # 为什么必须单列一个 job：其余三个 job 全部用 `pip install -e ".[dev]"`，
+  # editable 安装下 repo_root() 命中仓库根，data/ 正常——于是"数据没随包"
+  # 在任何一道门里都看不见。实测过：wheel 23 条目、data 条目 0、
+  # 干净安装后 diagnostics 报"共 0 条"、check 输出"未评估"却 exit 0。
+  #
+  # 判据落在**规则条数 45** 上，不落在"退出码 0"上——失效形态正是
+  # "能跑、但读不到数据"。pytest 侧的同一道门见 tests/test_packaging_install.py
+  # （它在干净副本上重建 wheel，防 `build/` 与 egg-info 的陈旧清单造成假绿）。
+  install-smoke:
+    name: install-smoke (${{ matrix.os }} / py${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            python-version: "3.12"
+          - os: ubuntu-latest
+            python-version: "3.12"
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
+
+      # 只装构建后端：运行时依赖为空（dependencies = []），故装 wheel 不需要网络
+      - name: Install build backend
+        run: python -m pip install "setuptools>=77" wheel
+
+      - name: Build wheel (non-editable)
+        run: python -m pip wheel . --no-deps --no-build-isolation -w dist-wheel
+
+      # wheel 里必须有随包数据（rules 4 + benchmark 1 + samples 5 = 10 条目）
+      - name: Assert wheel carries data files
+        shell: bash
+        run: |
+          python - <<'PY'
+          import glob, sys, zipfile
+          wheel = glob.glob("dist-wheel/*.whl")[0]
+          names = zipfile.ZipFile(wheel).namelist()
+          data = [n for n in names if "/data/" in n]
+          print("wheel:", wheel)
+          print("data entries:", len(data))
+          for n in sorted(data):
+              print("  ", n)
+          if len(data) != 10:
+              sys.exit("随包数据条目 %d 个（期望 10）—— 数据没随包" % len(data))
+          if any("/data/knowledge/" in n for n in names):
+              sys.exit("wheel 混入了 knowledge（版权敏感、有意不随包）")
+          PY
+
+      # 全新 venv + 中立目录：绝不复用源码树（复用会让 repo_root() 命中仓库根）
+      - name: Install into fresh venv and smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m venv "$RUNNER_TEMP/clean"
+          if [ -x "$RUNNER_TEMP/clean/Scripts/python.exe" ]; then
+            PY="$RUNNER_TEMP/clean/Scripts/python.exe"
+            BIN="$RUNNER_TEMP/clean/Scripts"
+            # Windows 上入口是 pflc.exe；Git Bash 不会为无扩展名的名字自动补 .exe
+            CLI="$BIN/pflc.exe"
+          else
+            PY="$RUNNER_TEMP/clean/bin/python"
+            CLI="$RUNNER_TEMP/clean/bin/pflc"
+          fi
+          "$PY" -m pip install --no-index dist-wheel/*.whl
+          # 入口脚本由 pip 安装时生成，故这条断言必须在装完之后
+          test -x "$CLI" || { echo "装完仍无入口脚本：$CLI"; ls -l "$(dirname "$CLI")"; exit 1; }
+          mkdir -p "$RUNNER_TEMP/neutral"
+          cd "$RUNNER_TEMP/neutral"
+          env -u PYTHONPATH -u PFLC_DATA_DIR "$CLI" diagnostics > d.txt 2>&1 || {
+            cat d.txt; exit 1; }
+          cat d.txt
+          # 判据落在规则条数上：退出码 0 不等于读到了数据
+          grep -qE "\[label\] 共 8 条" d.txt
+          grep -qE "\[nutrition\] 共 32 条" d.txt
+          grep -qE "\[claim\] 共 5 条" d.txt
+          env -u PYTHONPATH -u PFLC_DATA_DIR "$CLI" bench > b.txt 2>&1 || {
+            cat b.txt; exit 1; }
+          test "$(grep -c '\[PASS\]' b.txt)" -eq 4
+          grep -q "truth_source = frozen" b.txt
+
   # 发行态验收：真的打出 onedir 双 exe，再在**中立目录 + 剥离环境变量**下跑
   # 冻结态三连（自检 + CLI 五连 + GUI 存活探针）。
   #
@@ -138,11 +232,11 @@ jobs:
       matrix:
         python-version: ["3.12"]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
 

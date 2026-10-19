@@ -7,6 +7,13 @@
 白名单单一事实源（见 plan/04 §九）：datas 只准由 ``build_datas()`` 产生，
 spec 内不手写数据路径——三处守门（spec 文本、构建后扫描、白名单外检测）
 互相独立，改一处口径必同步另两处。
+
+**数据布局（DEC1 = A，数据进包）**：随包的三个目录住在
+``src/pflc/data/{rules,benchmark,samples}``，所以 wheel 与非 editable 安装
+都能读到；``data/knowledge`` 仍留在仓库根（版权敏感、非运行时依赖）。
+``build_datas`` / ``data_manifest`` / ``assert_no_extra_data`` 因此都按
+**包内数据根**取源，而 datas 的**目标目录**仍是 ``data/<name>``——
+冻结态的 ``_MEIPASS/data`` 布局不变。
 """
 
 from __future__ import annotations
@@ -15,6 +22,14 @@ import hashlib
 import json
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
+
+#: 包内数据目录（相对仓库根）。数据进包后这是**随包数据**的唯一物理位置。
+PACKAGE_DATA_RELPATH: Tuple[str, ...] = ("src", "pflc", "data")
+
+
+def package_data_root(root: Path) -> Path:
+    """仓库根 → 包内数据根（``<root>/src/pflc/data``）。"""
+    return Path(root).joinpath(*PACKAGE_DATA_RELPATH)
 
 #: 随包的数据目录白名单（**只收运行必需 + README 明示可跑**）。
 #:
@@ -39,7 +54,9 @@ DATA_WHITELIST: Tuple[str, ...] = (
 #: 在导入期就把这个口子堵死）。
 #:
 #: ``knowledge``：版权敏感的原文快照与转录素材，是**核对用素材而非运行时依赖**
-#: （``knowledge_raw_dir()`` 只在离线核对通路被调用）。
+#: （``knowledge_raw_dir()`` 只在离线核对通路被调用）。它留在**仓库根**的
+#: ``data/knowledge``——注意它现在与随包数据不在同一棵树里（DEC1 = A 之后
+#: 随包数据在 ``src/pflc/data/``），这条豁免因此也承担"两棵树分家"的登记职责。
 KNOWN_UNSHIPPED: Tuple[str, ...] = ("knowledge",)
 
 #: 禁区成分（**相对数据根匹配**，不等价于"任意层级"——见 ``_forbidden_hits``）。
@@ -75,11 +92,12 @@ _assert_exemption_wired()
 def build_datas(root: Path) -> List[Tuple[str, str]]:
     """产出 PyInstaller datas 列表。
 
-    返回 ``[(源路径, 包内目标目录)]``。禁区目录出现即**直接抛错**——
+    返回 ``[(源路径, 包内目标目录)]``。源取**包内数据根**
+    （``<root>/src/pflc/data/<name>``），目标仍是 ``data/<name>``——
+    冻结态布局不因数据进包而改变。禁区目录出现即**直接抛错**——
     构建期拦截比构建后扫描更早、更明确。
     """
-    root = Path(root)
-    data_root = root / "data"
+    data_root = package_data_root(root)
     datas: List[Tuple[str, str]] = []
     if not data_root.is_dir():
         return datas
@@ -148,18 +166,23 @@ def assert_no_forbidden(root: Path, dist_dir: Path) -> List[str]:
 
 
 def data_manifest(root: Path) -> Dict[str, str]:
-    """内嵌数据的逐份 sha256（构建后对账用）。"""
-    root = Path(root)
+    """内嵌数据的逐份 sha256（构建后对账用）。
+
+    **键的形态是 dist 内的相对路径**（``data/rules/manifest.json``），
+    不是仓库内路径——对账对象是打包产物，产物布局不因源在 ``src/pflc/data``
+    而改变。源取包内数据根。
+    """
+    data_root = package_data_root(root)
     out: Dict[str, str] = {}
     for name in DATA_WHITELIST:
-        base = root / "data" / name
+        base = data_root / name
         if not base.is_dir():
             continue
         for path in sorted(base.rglob("*")):
             if not path.is_file():
                 continue
             try:
-                rel = path.relative_to(root).as_posix()
+                rel = "data/" + path.relative_to(data_root).as_posix()
             except ValueError:
                 rel = str(path)
             out[rel] = hashlib.sha256(path.read_bytes()).hexdigest()
@@ -197,22 +220,35 @@ def assert_no_extra_data(root: Path, dist_dir: Path) -> List[str]:
     **已知豁免**（``KNOWN_UNSHIPPED``）与白名单是两件事：白名单 = "随包"，
     豁免 = "确认过，有意不随包"。两者都要显式登记，未登记的目录一律报出来——
     这条断言的价值就在于"任何新数据目录都必须被有意识地决定一次"。
+
+    **两棵树都扫**（DEC1 = A 之后数据分家）：随包数据在
+    ``src/pflc/data/``（白名单 + README），核对素材在仓库根 ``data/``
+    （豁免表 + README）。只扫一棵会留下"另一半悄悄长出目录"的盲区。
     """
     problems: List[str] = []
     root = Path(root)
-    data_root = root / "data"
-    if not data_root.is_dir():
-        return problems
-    known = set(DATA_WHITELIST) | set(KNOWN_UNSHIPPED) | {"README.md"}
-    for child in sorted(data_root.iterdir()):
-        if child.name in known:
-            continue
-        if child.name.startswith("_"):
-            continue
-        problems.append(
-            "data/ 下出现未登记目录 %s —— 请确认是否应进白名单（build_datas）"
-            "或登记为有意不随包（KNOWN_UNSHIPPED）" % child.name
-        )
+
+    shipped = package_data_root(root)
+    if shipped.is_dir():
+        known = set(DATA_WHITELIST) | {"README.md"}
+        for child in sorted(shipped.iterdir()):
+            if child.name in known or child.name.startswith("_"):
+                continue
+            problems.append(
+                "包内数据目录出现未登记项 %s —— 请确认是否应进白名单（build_datas）"
+                % child.name
+            )
+
+    repo_data = root / "data"
+    if repo_data.is_dir():
+        known = set(KNOWN_UNSHIPPED) | {"README.md"}
+        for child in sorted(repo_data.iterdir()):
+            if child.name in known or child.name.startswith("_"):
+                continue
+            problems.append(
+                "仓库根 data/ 下出现未登记目录 %s —— 随包数据应放 src/pflc/data/，"
+                "核对素材请登记为有意不随包（KNOWN_UNSHIPPED）" % child.name
+            )
     return problems
 
 

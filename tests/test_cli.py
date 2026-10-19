@@ -44,6 +44,20 @@ def test_check_violating_label_exits_one(tmp_path, monkeypatch, rules_dir):
     assert main(["check", str(path)]) == EXIT_NOT_MET
 
 
+def test_check_not_assessed_exits_one(tmp_path, monkeypatch, empty_rules_dir):
+    """**未评估 → exit 1**（DEC3 = B）。
+
+    零生效规则时 ``check`` 输出"整体结论：未评估"。修复前它落到 ``EXIT_OK``——
+    于是"什么都没查"与"检查过、没问题"在退出码上**无法区分**，
+    脚本会把前者当成通过。这条测试锁死新口径。
+
+    与 ``diagnostics``（零生效规则 → exit 1）口径一致；``bench`` 在门槛
+    缺失时是 exit 2（配置错误，语义不同）。
+    """
+    path = write_text_lf(tmp_path / "any.txt", "测试粮A 猫粮 成年\n")
+    assert main(["check", str(path)]) == EXIT_NOT_MET
+
+
 def test_scan_missing_dir_is_usage_error(tmp_path):
     assert main(["scan", str(tmp_path / "nope")]) == EXIT_USAGE
 

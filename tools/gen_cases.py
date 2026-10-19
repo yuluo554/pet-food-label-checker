@@ -41,6 +41,7 @@ for _stream_name in ("stdout", "stderr"):
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
+from pflc.packaging import package_data_root  # noqa: E402
 from pflc.benchmark.cases import (  # noqa: E402
     cases_path_for,
     check_cases_frozen,
@@ -48,7 +49,8 @@ from pflc.benchmark.cases import (  # noqa: E402
     write_cases,
 )
 
-RULES_DIR = ROOT / "data" / "rules"
+#: 规则包与真值库都在包内（DEC1 = A）；真值库路径由 cases_path_for 从它推导
+RULES_DIR = package_data_root(ROOT) / "rules"
 
 OK_MARKER = "FROZEN_CASES_OK"
 

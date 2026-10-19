@@ -13,6 +13,8 @@ dist/
 
 # 运行产物
 output/
+# README 的 wheel 安装通路与 CI install-smoke 的构建输出
+dist-wheel/
 reports/
 release/
 *.log

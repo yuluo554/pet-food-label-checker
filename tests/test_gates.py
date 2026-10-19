@@ -17,6 +17,8 @@ ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / "src"
 TOOLS = ROOT / "tools"
 
+from tests.conftest import PACKAGE_DATA, REPO_DATA  # noqa: E402
+
 #: 引擎/基准/前端源码扫描面（数值只能来自规则包）
 BANNED_SCAN_DIRS = (SRC / "pflc", TOOLS)
 
@@ -281,7 +283,7 @@ def test_gui_has_no_policy_numeric_literals():
     """
     from pflc.rules import banned_numeric_tokens
 
-    rules_dir = ROOT / "data" / "rules"
+    rules_dir = PACKAGE_DATA / "rules"
     tokens = banned_numeric_tokens(rules_dir)
     #: 防空转：真实规则包下 token 集必须非空，否则判据①恒不触发
     assert tokens, "真实规则包下禁用 token 集为空 = 界面门禁空转（假门）"
@@ -369,7 +371,7 @@ def test_gui_policy_literal_gate_is_not_vacuous(tmp_path):
 
     from pflc.rules import banned_numeric_tokens
 
-    tokens = banned_numeric_tokens(ROOT / "data" / "rules")
+    tokens = banned_numeric_tokens(PACKAGE_DATA / "rules")
     assert tokens, "真实规则包下 token 集为空 = 假门"
 
     # 取一个真实限值（整数形态），确认旧口径会放过它、新口径必须抓住
@@ -513,8 +515,9 @@ def test_frozen_data_has_no_cr():
     且豁免**按扩展名**（不是"这个文件全放过"）。文本类冻结数据（规则包、
     夹具、条文块、原文快照的文本件）仍逐个查 CR。
     """
-    frozen_dirs = (ROOT / "data" / "rules", ROOT / "data" / "samples",
-                   ROOT / "data" / "benchmark", ROOT / "data" / "knowledge")
+    # DEC1 = A 之后数据分两棵树：随包数据在 src/pflc/data，核对素材在仓库根 data/
+    frozen_dirs = (PACKAGE_DATA / "rules", PACKAGE_DATA / "samples",
+                   PACKAGE_DATA / "benchmark", REPO_DATA / "knowledge")
     violations = []
     text_files_checked = 0
     for base in frozen_dirs:
@@ -550,7 +553,8 @@ def test_gitattributes_declares_frozen_paths_as_text_free():
     """.gitattributes 必须把冻结路径标 -text，否则克隆后 sha256 失配。"""
     text = (ROOT / ".gitattributes").read_text(encoding="utf-8")
     assert "eol=lf" in text
-    for needle in ("data/knowledge/raw/**", "data/benchmark/**", "data/rules/**"):
+    for needle in ("data/knowledge/raw/**", "src/pflc/data/benchmark/**",
+                   "src/pflc/data/rules/**"):
         assert needle in text, "缺冻结路径声明：%s" % needle
     assert "-text" in text
 
@@ -795,8 +799,9 @@ def _spec_analysis_scripts() -> list:
     用 AST 而非正则：spec 里 ``Analysis(  # noqa: F821`` 带行尾注释，
     正则会被注释绊住而**静默抽到空列表**——判据于是空转（本测试第一次跑就踩中）。
 
-    用 ``ast.get_source_segment`` 而非 ``ast.unparse``：后者是 **3.9+** API，
-    本项目底线 3.8（否则守门测试在 3.8 上直接 AttributeError）。
+    用 ``ast.get_source_segment`` 而非 ``ast.unparse``：两者都能用，但前者
+    对带行尾注释的 spec 更稳（``unparse`` 会重新排版，片段比对容易失配）。
+    注：floor 已于 2026-10-20 抬到 3.12，这条选择因此只剩"更稳"这一个理由。
     """
     text = _spec_text()
     tree = ast.parse(text, filename="pflc.spec")
@@ -1001,10 +1006,13 @@ def test_readme_referenced_sample_files_exist():
         pytest.skip("README 尚未创建")
     text = readme.read_text(encoding="utf-8")
     missing = []
-    for match in re.finditer(r"data/samples/[\w.\-]+", text):
-        candidate = ROOT / match.group(0)
-        if not candidate.is_file():
-            missing.append(match.group(0))
+    for match in re.finditer(r"(?:src/pflc/)?data/samples/[\w.\-]+", text):
+        rel = match.group(0)
+        # DEC1 = A：夹具随包（src/pflc/data/samples）。README 里两种写法都认，
+        # 但**必须至少有一种真的存在**——否则"README 里的示例路径"就是空的。
+        if (ROOT / rel).is_file() or (ROOT / "src" / "pflc" / rel).is_file():
+            continue
+        missing.append(rel)
     assert missing == [], "README 引用了不存在的文件：%s" % missing
 
 
@@ -1170,7 +1178,8 @@ def test_dev_extras_cover_test_imports():
         "urllib", "contextlib", "abc", "enum", "operator", "traceback",
         # M6：发布打包/回读保真测试用（ZIP 格式的标准库）——不是安装面依赖
         "zipfile",
-        # M6：stdlib 判定辅助用（sysconfig 定位标准库路径，3.8 兼容）
+        # M6：stdlib 判定辅助用（sysconfig 定位标准库路径；不依赖 3.10+ 的
+        # sys.stdlib_module_names，口径更明确）
         "sysconfig",
     }
     missing = sorted(
@@ -1192,7 +1201,7 @@ IMPORT_NAME_ALIASES = {"Pillow": "PIL", "pyyaml": "yaml"}
 def _extras_of(pyproject_text: str):
     """解析 ``[project.optional-dependencies]`` → ``{extra: [分发名]}``。
 
-    用 tomllib/tomli 都不稳（3.8 无 tomllib），故按块切——这几行的形态是
+    不引入 tomllib/tomli（后者是额外依赖），故按块切——这几行的形态是
     本项目自己维护的，够用且无额外依赖。
     """
     import re as _re
@@ -1219,10 +1228,9 @@ def _extras_of(pyproject_text: str):
 
 
 def _is_stdlib_module(name: str) -> bool:
-    """模块是否属于标准库（**3.8 兼容**）。
+    """模块是否属于标准库（按**安装位置**判，不用 ``sys.stdlib_module_names``）。
 
-    ``sys.stdlib_module_names`` 是 **3.10+** 才有（本项目底线 3.8，直接用它
-    会在 3.8 上把每个标准库都判成第三方 = 假红一片）。故退回按**安装位置**判：
+    按位置判的口径比按名单判更明确（也不受解释器版本差异影响）：
     解析出模块文件路径，落在 stdlib 目录且不在 site-packages 下即为标准库。
     内置/冻结模块（``sys`` 等）另按 ``builtin_module_names`` 判。
     """

@@ -64,6 +64,7 @@
 | M4 | 合成标签基准：程序化生成合规/违规样例 + 植入真值 + 一条命令复现评测 | ✅ **2026-10-15**（真值库入仓 + 四套件达标 + 指标进 README；255 项测试双解释器全绿；本地等价校验通过，未接远端） |
 | M5 | 桌面交付：PySide6 界面 + PyInstaller 打包 + 报告导出 + 技术报告 | ✅ **2026-10-15**（onedir 双 exe 真构建 + 两树冻结验收 + 演示物料重生成；274 项测试双解释器全绿；**新增 `package` job**，CI 待首推验证） |
 | M6 | 发布：git tag + GitHub Release 附产物（exe/演示 GIF）+ **发布留档三件套**，发布 GitHub 公开仓库 | ✅ **2026-10-15**（公开仓库 + Release `v0.1.0` 两 zip 附件；**CI 首跑抓出 3 个真缺陷并修掉 → 7/7 全绿**；转公开三清 HARD 3→0；297 项测试双解释器全绿） |
+| M7 | 二次迭代：安装面缺陷修复 + 门禁补齐 + 契约口径统一 | ✅ **2026-10-20**（数据进包 → wheel 带 10 个数据条目；`install-smoke` job + `test_packaging_install.py`；未评估 → exit 1；license SPDX；floor ≥3.12；303 测试；发 **`v0.2.0`**，详见 `plan/RELEASE-M6.md` §七/§八） |
 
 **里程碑 DoD 纪律**：每个里程碑收尾时在 [data/README.md](../data/README.md) 台账回填实测证据；M6 DoD = git tag + GitHub Release 附产物 + 发布留档三件套。
 **出口门硬约束**：每个里程碑 DoD 达成后，**必须在本对话内写完下一阶段的 `plan/HANDOFF-M<next>.md` 才允许结束对话**——"下个对话再补"是实测必然漏的反模式。
@@ -441,3 +442,7 @@ M6 DoD 第 2 条（测试面 = 安装面）实测发现：README 让用户跑
 CI **7/7 全绿**；真下载附件 sha256 与留档逐条一致且中立目录解压可跑；
 发布后全新 clone `--all` **HARD 0** / 287 passed / `DEMO_ASSETS_OK`。
 **收官手册**：`plan/HANDOFF-FINAL.md`（末态基线 / 复跑手册 / 遗留项 L1–L7）。
+
+> **二次迭代（2026-10-20）**：安装面缺陷修复（数据进包）+ 门禁补齐（`install-smoke` job 与
+> `tests/test_packaging_install.py`）+ 退出码契约统一（未评估 → exit 1）+ 元数据 SPDX +
+> floor 抬到 **>=3.12**。测试 **303 passed**。以上 M6 数字保留为历史快照，详见 `plan/RELEASE-M6.md` §七。

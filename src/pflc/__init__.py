@@ -16,7 +16,7 @@
     gui        桌面应用（惰性导入 PySide6，零判定逻辑）
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 #: 冻结态标记（供外部快速判断，避免 import sys）
 def is_frozen() -> bool:  # pragma: no cover - 薄转发

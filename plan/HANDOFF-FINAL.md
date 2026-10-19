@@ -13,14 +13,24 @@
 |---|---|
 | 公开仓库 | <https://github.com/yuluo554/pet-food-label-checker> |
 | 可见性 | **PUBLIC**（三清完成后才切） |
-| Release | `v0.1.0` · <https://github.com/yuluo554/pet-food-label-checker/releases/tag/v0.1.0> |
-| 发布基线提交 | **tag `v0.1.0`**——权威值用 `git rev-list -n1 v0.1.0` 现取（**故意不写死 SHA**：本文件每次改动都会移动 HEAD，写死的 SHA 必然过期；本棒已做过**两次**历史重写，早期 SHA 全部作废） |
-| 提交总数 | 17（`git rev-list --count HEAD`） |
-| 附件（ASCII 名） | `pflc-gui-windows-x64-0.1.0.zip`（165 文件 / 110.9 MB）<br>`pflc-cli-windows-x64-0.1.0.zip`（23 文件 / 16.5 MB） |
-| sha256 留档 | `docs/DIST-sha256-M6.txt`（zip sha256 + 文件数 + **树 sha256**） |
+| Release（当前） | **`v0.2.0`** · <https://github.com/yuluo554/pet-food-label-checker/releases/tag/v0.2.0> |
+| 发布基线提交 | **tag `v0.2.0`**——权威值用 `git rev-list -n1 v0.2.0` 现取（**故意不写死 SHA**：本文件每次改动都会移动 HEAD，写死的 SHA 必然过期；历史已重写两次，早期 SHA 全部作废） |
+| 上一版 | `v0.1.0`（附件与留档 `docs/DIST-sha256-M6.txt` 均保留，可复核） |
+| 提交总数 | 现取：`git rev-list --count HEAD` |
+| 附件（ASCII 名） | `pflc-gui-windows-x64-0.2.0.zip`（165 文件）<br>`pflc-cli-windows-x64-0.2.0.zip`（23 文件）<br>`pet_food_label_checker-0.2.0-py3-none-any.whl`<br>`pet_food_label_checker-0.2.0.tar.gz` |
+| sha256 留档 | **`docs/DIST-sha256-v0.2.0.txt`**（zip sha256 + 文件数 + **树 sha256**；附录含 wheel/sdist）。`-M5` / `-M6` 为历史留档 |
 | topics | 8 个（`pet-food` / `label-compliance` / `rules-engine` / `china-regulation` / `python` / `pyside6` / `offline` / `food-safety`），已回读确认 |
 
-**附件 sha256**（与真下载核对一致）：
+**附件 sha256（v0.2.0，本机实算 = 留档）**：
+
+```
+5fa93cb6c1457160175b869b4f20c878de9b5ece96383fc66a8cc6b99d527313  pflc-cli-windows-x64-0.2.0.zip   23 文件
+635316b9307bb4b00bb1f2e1094a6d26115c21813c1528def43a6e4362cc0512  pflc-gui-windows-x64-0.2.0.zip  165 文件
+e09ff0934eb544f9d97a6204dcc8ff2410e3a719637fd552e463081a78bf2707  pet_food_label_checker-0.2.0-py3-none-any.whl
+2b3b6d7c22ba7984630c4c3f6d6e763416a0c25ec807816919ab2165b95b14b3  pet_food_label_checker-0.2.0.tar.gz
+```
+
+**v0.1.0 附件 sha256（历史，未变）**：
 
 ```
 d9b63eab69a06155bbe6069ed9c6d678096bf8e8d56fdf28a8825748d8f7381d  pflc-cli-windows-x64-0.1.0.zip
@@ -33,7 +43,8 @@ d9b63eab69a06155bbe6069ed9c6d678096bf8e8d56fdf28a8825748d8f7381d  pflc-cli-windo
 
 | 项 | 值 | 怎么核 |
 |---|---|---|
-| 全量测试 | **297 passed**（Python 3.8.8 / 3.12.10 各一遍） | `py -X utf8 -m pytest -q` · `py -3.12 -X utf8 -m pytest -q` |
+| 全量测试 | **303 passed**（装齐 `[dev,gui]` + `QT_QPA_PLATFORM=offscreen`；只装 `[dev]` 时 **294 passed + 1 skipped**） | `QT_QPA_PLATFORM=offscreen py -3.12 -X utf8 -m pytest -q -ra` |
+| 非 editable 安装 | wheel 带 **10 个数据条目**；干净 venv 装完 `diagnostics` exit 0 且 **45 条**（8/32/5）、`bench` exit 0 四套件 PASS | `tests/test_packaging_install.py` 与 CI `install-smoke` job |
 | 规则包 | **45 条**（`label` 8 / `nutrition` 32 / `claim` 5；**43 `verified` + 2 `pending`**） | `py -X utf8 -m pflc.cli diagnostics` |
 | 基准 | 四套件全达标，期望锚定冻结真值库（`truth_source=frozen`） | `py -X utf8 -m pflc.cli bench` |
 | 守门标记 | `TRANSCRIBE_OK` · `FROZEN_RULESET_OK` · `FROZEN_CASES_OK` · `FROZEN_SAMPLES_OK` · `DESSENSITIZE_AUDIT_OK` · `SMOKE_CLI_OK` · **`RELEASE_PACK_OK`** · **`VERIFY_FROZEN_OK`**（两树） · **`DEMO_ASSETS_OK`** | 见 §三 复跑手册 |
@@ -63,8 +74,7 @@ python -m pytest -q                   # 期望 287 passed / 2 skipped（无 gui/
 ### 3.2 全套守门（每次收尾必跑）
 
 ```bash
-py -X utf8 -m pytest -q                        # 297 passed（本机装齐 gui+demo+build 时）
-py -3.12 -X utf8 -m pytest -q                  # 双解释器验证
+QT_QPA_PLATFORM=offscreen py -3.12 -X utf8 -m pytest -q -ra   # 303 passed（装齐 [dev,gui]）
 
 py -X utf8 tools/transcribe_clauses.py --check   # TRANSCRIBE_OK
 py -X utf8 tools/gen_rulesets.py --check         # FROZEN_RULESET_OK
@@ -96,7 +106,7 @@ py -X utf8 tools/make_release.py --dist dist --out release --check \
 ### 3.4 发布后复核（每次改源码重建产物后）
 
 ```bash
-gh release download v0.1.0 --repo yuluo554/pet-food-label-checker
+gh release download v0.2.0 --repo yuluo554/pet-food-label-checker
 # 逐条对账 sha256（表见 docs/DIST-sha256-M6.txt），再在中立目录解压跑：
 #   pflc-cli.exe selftest --out selftest.json
 #   pflc-cli.exe check <包内 data/samples/label-demo-ok.txt>
@@ -127,7 +137,7 @@ py -X utf8 tools/gen_samples.py --force          # 重生成夹具
 | 首推 CI | 首跑 **7 job / 4 绿 3 红**（run `38702307047`） |
 | 修缺陷 | 3 个真缺陷（全部"本机绿、CI 红"），修完复跑 **7/7 全绿** |
 | 三清收尾 | 删失败 run `38702307047` |
-| Release | tag `v0.1.0` + Release + 两个 zip 附件 |
+| Release | tag `v0.2.0` + Release + 两个 exe zip + wheel/sdist 附件 |
 | topics | 8 个，已回读 |
 | 真下载复核 | sha256 一致 + 中立目录解压 + 冻结态自检 + CLI 五连 → 全过 |
 | 切 public | 三清完成后才切 |
@@ -168,7 +178,7 @@ py -X utf8 tools/gen_samples.py --force          # 重生成夹具
 | L4 | **2 条 `pending` 规则** | 牛磺酸一行限值随**水分形态**分支（干粮 ≥0.1 / 湿粮 ≥0.2）。当前 `applies_if` 只支持类别/生命阶段，**无法表达水分形态门控**——只按一档判会对另一档产生假合规/假违规。**宁缺勿造**，要支持须扩规则模型（属功能扩展，非缺陷） |
 | L5 | **未录制视频演示** | 交付物含 GIF（`docs/demo/demo.gif`，6 页签 + 真实判定态）。若将来要视频，用 `tools/make_demo_assets.py` 同族通路录制 |
 | L6 | **`docs/DIST-sha256-M0.txt` 为历史留档** | M5 版（`-M5`）与 M6 版（`-M6`）是当前有效版本；M0 版留作沿革。改动物料时**只需更新当前有效版** |
-| L7 | **CI 的 Node.js 20 弃用警告** | `actions/checkout@v4` / `actions/setup-python@v5` 被强制跑在 Node 24 上，GitHub 的既有警告，不影响结论。待上游发新版本后可升 v5/v6 |
+| L7 | ~~**CI 的 Node.js 20 弃用警告**~~ **已修（2026-10-20 二次迭代）** | `actions/checkout` 升到 `@v5`、`actions/setup-python` 升到 `@v6`（大版本已确认存在）。**新 run 尚未推送 → 待复验**：推送后须确认日志里 `Node.js 20 is deprecated` 归零 |
 
 **没有"未验证"的 DoD**：M6 十三条 DoD 全部有实测证据（见 `plan/06` §M6）。
 本表列的是**范围外的已知取舍**，不是"没做完"。

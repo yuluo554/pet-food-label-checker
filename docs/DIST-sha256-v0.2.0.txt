@@ -1,0 +1,29 @@
+# 发布物 zip sha256 留档（v0.2.0）
+# 生成：py -X utf8 tools/make_release.py --dist dist --out release --ledger <此文件>
+# 版本：0.2.0
+#
+# 确定性口径（**打包这一步**）：ZIP_STORED + 条目字典序 + 固定时间戳 1980-01-01
+#   + 固定外部属性。**同一棵树**打两次的 zip 逐字节一致（守门见 tests/test_release.py）。
+#
+# ⚠️ **但 PyInstaller 产出的树本身不是逐字节可复现的**：exe/dll 里含构建期
+#  信息（PE 时间戳、构建路径等）。M6 实测：同一份 spec 在同一台机器上两次
+#  构建，pflc-cli.exe 的 sha256 不同（813da5e1… / 9a355663…）；CI runner 上也
+#  会得到另一组哈希与另一个文件数（Windows runner 的 Python 环境收集到更多
+#  运行库，实测多 43 个文件）。故**留档哈希只对「这一份发布产物」有效**，
+#  不能用「在别处重建一次」来复现——复现的是**确定性口径**，不是那些字节。
+#  真下载复核的做法见 plan/RELEASE-M6.md §五（v0.1.0）与 §七（后续版本）：
+#  对账的是**下载到的附件**与本表，不是在别处重打一个。
+#
+# 格式：<zip sha256>  <附件名>  <文件数>  <树 sha256>
+
+5fa93cb6c1457160175b869b4f20c878de9b5ece96383fc66a8cc6b99d527313  pflc-cli-windows-x64-0.2.0.zip  23  02a6d3fb65c8a2bf675d49ac5e25e93e811d3ae64bcd6c98bba96d13a70f97ed
+635316b9307bb4b00bb1f2e1094a6d26115c21813c1528def43a6e4362cc0512  pflc-gui-windows-x64-0.2.0.zip  165  a69a78c4fc27aba596b2a39d5e4ed5467c69bb5451549b07ebb7f0ccd227fc24
+
+# ── 附录：Python 包附件（wheel / sdist）────────────────────────────────
+# 这两个不是 make_release.py 的产物（它只打 exe 的 zip），故**手写追加**；
+# 重新运行 --ledger 会覆盖本附录——重生成后请重跑下面两条命令补回来：
+#   python -m pip wheel . --no-deps --no-build-isolation -w dist-wheel
+#   python -m build --sdist --outdir dist-wheel --no-isolation
+# 格式：<sha256>  <附件名>  <字节数>  wheel|sdist
+e09ff0934eb544f9d97a6204dcc8ff2410e3a719637fd552e463081a78bf2707  pet_food_label_checker-0.2.0-py3-none-any.whl  96102  wheel
+2b3b6d7c22ba7984630c4c3f6d6e763416a0c25ec807816919ab2165b95b14b3  pet_food_label_checker-0.2.0.tar.gz  163937  sdist
