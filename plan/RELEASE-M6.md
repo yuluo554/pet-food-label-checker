@@ -384,7 +384,7 @@ pflc bench        → "配置错误：…thresholds 节缺失" → exit 2
 | 项 | 值 |
 |---|---|
 | tag | `v0.2.0` |
-| 附件 | `pflc-gui-windows-x64-0.2.0.zip`（165 文件）<br>`pflc-cli-windows-x64-0.2.0.zip`（23 文件）<br>`pet_food_label_checker-0.2.0-py3-none-any.whl`（96,102 B）<br>`pet_food_label_checker-0.2.0.tar.gz`（163,937 B） |
+| 附件 | `pflc-gui-windows-x64-0.2.0.zip`（175 文件，Qt 6.12.0 重打）<br>`pflc-cli-windows-x64-0.2.0.zip`（23 文件）<br>`pet_food_label_checker-0.2.0-py3-none-any.whl`（96,102 B）<br>`pet_food_label_checker-0.2.0.tar.gz`（163,937 B） |
 | 留档 | `docs/DIST-sha256-v0.2.0.txt`（zip 行由 `make_release.py --ledger` 生成；wheel/sdist 为附录手写追加） |
 | 上一版 | `v0.1.0` 与 `docs/DIST-sha256-M6.txt` **原样保留**，可复核 |
 
@@ -415,3 +415,37 @@ exe 里还带数据——`build_datas()` 改源路径后若忘了同步，exe �
 `DIST-sha256-v<版本>.txt`，否则扫 `DIST-sha256-*.txt` 里头部版本号匹配的那份；
 并新增断言"留档头部版本 == 包版本"，把"版本 bump 忘了重生成留档"这一点明化。
 `make_release.ledger_text()` 的表头也从写死 `（M6）` 改为按版本生成。
+### 8.4 首推 CI 抓到的一处真回归（诚实照录）
+
+**run `39295488794`（首推 v0.2.0）：6 个 job 全绿，`package` job 在
+`Demo assets reproducible` 红。**
+
+```
+问题：留档哈希与生成物料不符（物料变了没更新留档，或生成器变了）：
+      ['demo.gif', 'tab-0.png', 'tab-1.png', 'tab-2.png', 'tab-3.png',
+       'tab-4.png', 'tab-5.png']
+```
+
+**根因**：本轮按 DEC4 = B 去掉 `PySide6<6.7` 上限后写成 `PySide6>=6.6`，
+CI 装到 **6.12.0**，而本机仍是 **6.6.3.1**。演示物料是 Qt **渲染出来的字节**
+（`docs/demo/*.png|gif`），换 Qt 次版本渲染结果就变——`check_demo_reproducible.py`
+拿入仓留档比对，于是"本机绿、CI 红"。
+
+这是**本轮自己引入的回归**，不是既有缺陷；也不是"判据太严"——那七份物料
+的哈希是"M5 真实判定态"的证据，放宽它等于让素材漂移无人知。
+
+**处置（真修，不放宽判据）**：
+
+1. 本机 `pip install PySide6==6.12.0`，用 **6.12.0 重生成**全部演示物料
+   （`tools/make_demo_assets.py --out docs/demo`）；
+2. 同步重写 `docs/DIST-sha256-M5.txt` 的七条哈希，并在表头写明这次重生成的
+   原因与版本；
+3. `gui` extra 由 `>=6.6` 收到 **`>=6.12,<6.13`**——把渲染环境钉住，
+   "CI 装到别的 6.x"从而不再是一次随机红测。次版本上升时必须同时重生成
+   素材与留档（这条写进 `pyproject.toml` 的注释里）；
+4. 因为 Qt 版本变了，`dist/` 两棵 exe 树**必须重打**（否则发布物与
+   `gui` 声明不同环境），重打后两树复验 `VERIFY_FROZEN_OK`。
+
+**教训（留给后来者）**：`gui` 这类"渲染产出会入仓"的依赖，**不能用开区间**。
+开区间的后果不是"装不上"，而是"装上的版本与入仓素材不一致"——而它只在
+CI 上暴露，本机永远是绿的。

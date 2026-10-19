@@ -36,8 +36,11 @@ dev = [
   "wheel",
 ]
 # GUI 是可选重件：CLI 与核心层不得依赖它。
-# floor 抬到 3.12 后不再需要 `<6.7` 上限（那条上限原本是为 3.8 钉的）。
-gui = ["PySide6>=6.6"]
+# **钉到次版本**：入仓的演示物料（docs/demo/*.png|gif）是 Qt 渲染的字节产物，
+# 换 Qt 次版本渲染结果就变——`tools/check_demo_reproducible.py` 会拿留档比对，
+# 于是"CI 装到别的 6.x"会变成一次红测（v0.2.0 实测踩中：6.6.3.1 vs 6.12.0）。
+# 上升次版本时必须同时重生成素材与 docs/DIST-sha256-M5.txt。
+gui = ["PySide6>=6.12,<6.13"]
 # 打包工具单列一组，不拖累运行时安装面。
 # 打 GUI（PySide6）必须 PyInstaller >=6（5.x 扫 PySide6 字节码确定性崩）；
 # floor 抬到 3.12 后 5.x 那档已无对象，合并成单档。

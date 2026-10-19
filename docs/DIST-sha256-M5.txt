@@ -1,4 +1,4 @@
-# 演示物料 sha256 留档（M5）
+# 演示物料 sha256 留档（M5 生成器 / v0.2.0 重生成）
 # 生成器：py -X utf8 tools/make_demo_assets.py --out docs/demo
 # 验收：两次独立生成全部文件 sha256 逐个一致（实测 DEMO_ASSETS_REPRODUCIBLE）
 #
@@ -10,10 +10,16 @@
 # 脱敏审计按扩展名把 PNG 当二进制跳过，故本机路径无法被它拦下——
 # 生成器在产素材那一步做了替换 + 硬断言（见 tools/make_demo_assets.py）。
 
-461c2f6e82afdccb44d13c1b7642b2d8cee89394932c1f740e37b650f5186c17  demo.gif
-4fb644977d3e5f86d3b8abfdd6293aad8444b93252f0a22bca9c038c1ef98e21  tab-0.png
-bcdf5e4cc8c761578c714a383cd4c7f3d011049f8e2fafba450413d58701e94d  tab-1.png
-79bba32a89ccc88ba690b2e299db1732900d211e57bbd5b5f8d9c54d67dc6475  tab-2.png
-f4555d8bb82b635bc7ff19968c90d1b6b602f618d8b4529272a5ca93654a85bf  tab-3.png
-1d01177cba6cb9e91ae470fc5cd411bd1591ff28e29f07a300a90b252accd559  tab-4.png
-6b89e007525374e5cf936cf11d4976ffef3b85d3d87712fa92a82ec75ffdc3ff  tab-5.png
+#
+# **v0.2.0 重生成（2026-10-20）**：floor 抬到 >=3.12 后 gui extra 去掉 <6.7 上限，
+# CI 装到 PySide6 6.12.0，Qt 渲染字节与 6.6.3.1 不同 → 原留档在 CI 上必红
+# （实测 run 39295488794 的 package job）。处置：**素材与留档一起按 6.12.0 重生成**，
+# 并把 gui extra 钉到 6.12.* 使渲染环境可复现——不放宽判据。
+
+318f8a0c36562f748ec934d6822b32795e01002610eb37323815013cea2f9147  demo.gif
+ef05c3323e7d218ffa137b96bdbbc6ccb1a01cd663016aa991c091033421cb53  tab-0.png
+4ace0d76bcfbfc68cf6f09eb644c24dd66353da3207d8343b10487504f015228  tab-1.png
+f7655e1bf5234df1f1fece12718a9775c79acd1e879c4b6b6bdbdc4115470554  tab-2.png
+8e08e0cf1df044c62b25e580d8b5f0972285d6c3b03e415ba000a906b5f319d3  tab-3.png
+40dcf049d040f71bb2d9e641501ba723e733c2f8c384a1d08c5643979f0a114a  tab-4.png
+6909f03acdf6c3c0cb6768c1a1662191553698fa763daba532ab664ddd820bdc  tab-5.png

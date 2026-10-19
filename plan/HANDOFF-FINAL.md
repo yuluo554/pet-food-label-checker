@@ -17,18 +17,21 @@
 | 发布基线提交 | **tag `v0.2.0`**——权威值用 `git rev-list -n1 v0.2.0` 现取（**故意不写死 SHA**：本文件每次改动都会移动 HEAD，写死的 SHA 必然过期；历史已重写两次，早期 SHA 全部作废） |
 | 上一版 | `v0.1.0`（附件与留档 `docs/DIST-sha256-M6.txt` 均保留，可复核） |
 | 提交总数 | 现取：`git rev-list --count HEAD` |
-| 附件（ASCII 名） | `pflc-gui-windows-x64-0.2.0.zip`（165 文件）<br>`pflc-cli-windows-x64-0.2.0.zip`（23 文件）<br>`pet_food_label_checker-0.2.0-py3-none-any.whl`<br>`pet_food_label_checker-0.2.0.tar.gz` |
+| 附件（ASCII 名） | `pflc-gui-windows-x64-0.2.0.zip`（175 文件）<br>`pflc-cli-windows-x64-0.2.0.zip`（23 文件）<br>`pet_food_label_checker-0.2.0-py3-none-any.whl`<br>`pet_food_label_checker-0.2.0.tar.gz` |
 | sha256 留档 | **`docs/DIST-sha256-v0.2.0.txt`**（zip sha256 + 文件数 + **树 sha256**；附录含 wheel/sdist）。`-M5` / `-M6` 为历史留档 |
 | topics | 8 个（`pet-food` / `label-compliance` / `rules-engine` / `china-regulation` / `python` / `pyside6` / `offline` / `food-safety`），已回读确认 |
 
 **附件 sha256（v0.2.0，本机实算 = 留档）**：
 
 ```
-5fa93cb6c1457160175b869b4f20c878de9b5ece96383fc66a8cc6b99d527313  pflc-cli-windows-x64-0.2.0.zip   23 文件
-635316b9307bb4b00bb1f2e1094a6d26115c21813c1528def43a6e4362cc0512  pflc-gui-windows-x64-0.2.0.zip  165 文件
-e09ff0934eb544f9d97a6204dcc8ff2410e3a719637fd552e463081a78bf2707  pet_food_label_checker-0.2.0-py3-none-any.whl
-2b3b6d7c22ba7984630c4c3f6d6e763416a0c25ec807816919ab2165b95b14b3  pet_food_label_checker-0.2.0.tar.gz
+bdb0142207295f7082879044186344b8403f7070e1d3ca16bee7055f462a78b9  pflc-cli-windows-x64-0.2.0.zip   23 文件
+f4014d133002a3df5f84f23d1a680d20322100a746fa8914d69ef2034e6a8ea4  pflc-gui-windows-x64-0.2.0.zip  175 文件
+44f832553c5b2bffe1debc07596b1462521b681f6d4b6dcc8f473a5ac612b10c  pet_food_label_checker-0.2.0-py3-none-any.whl
+fc0c060c82b7ff1ee169ee1c7827eec937a6c2d1266ed011992ae29bbe0d7fb8  pet_food_label_checker-0.2.0.tar.gz
 ```
+
+> GUI 树是 **175 文件**（v0.1.0 时 165）：`PySide6` 由 6.6.3.1 换到 **6.12.0**
+> 后 Qt 库文件数变化。见 `plan/RELEASE-M6.md` §8.4。
 
 **v0.1.0 附件 sha256（历史，未变）**：
 
